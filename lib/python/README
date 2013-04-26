@@ -1,6 +1,19 @@
 This directory contains Python libraries, mostly related to checkpkg.
 
-==Checkpkg==
+== Private Buildfarm ==
+
+Notes:
+
+- When running a RESTful web app, /tmp is used to store temporary files.
+  Therefore, if you're uploading a large file, the server side process will
+  fail with an error. Make sure that the /tmp directory has about 1GB of free
+  space.
+  If you increase the swap size, /tmp will grow too.
+  References:
+  http://docs.oracle.com/cd/E19963-01/html/821-1448/ggrln.html
+  http://www.c0t0d0s0.org/archives/5815-Less-known-Solaris-features-The-curious-case-of-the-tmp-in-Solaris.html
+
+== Checkpkg ==
 
 Checks to implement:
  - *dev(el)? -> error, suggest *-dev
