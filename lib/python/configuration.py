@@ -115,18 +115,24 @@ def GetConfig():
   return config
 
 
-def ComposeDatabaseUri(config):
+def ComposeDatabaseUri(config, cache=False):
+  # Caching is disabled by default to conserve RAM. The buildfarm
+  # infrastructure is suffering from OutOfMemory errors on systems with e.g.
+  # 1GB or 1.5GB of RAM.
   db_data = {
       'db_type': config.get("database", "type"),
       'db_name': config.get("database", "name"),
       'db_host': config.get("database", "host"),
       'db_user': config.get("database", "user"),
-      'db_password': config.get("database", "password")}
+      'db_password': config.get("database", "password"),
+      'cache': 'true' if cache else 'false',
+  }
   logging.debug("db_name: %(db_name)s, db_user: %(db_user)s" % db_data)
   if db_data["db_type"] == "mysql":
-    db_uri_tmpl = "%(db_type)s://%(db_user)s:%(db_password)s@%(db_host)s/%(db_name)s"
+    db_uri_tmpl = ("%(db_type)s://%(db_user)s:%(db_password)s@%(db_host)s/"
+                   "%(db_name)s?cache=%(cache)s")
   elif db_data["db_type"] == "sqlite":
-    db_uri_tmpl = "%(db_type)s://%(db_name)s"
+    db_uri_tmpl = "%(db_type)s://%(db_name)s?cache=%(cache)s"
   else:
     raise ConfigurationError(
         "Database type %s is not supported" % repr(db_data["db_type"]))
