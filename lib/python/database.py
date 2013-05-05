@@ -177,7 +177,8 @@ class CheckpkgDatabaseMixin(object):
       - OS releases
       - catalog releases
     """
-    for arch in common_constants.PHYSICAL_ARCHITECTURES:
+    # We need the 'all' architecture as well.
+    for arch in common_constants.ARCHITECTURES:
       try:
         obj = m.Architecture(name=arch)
       except sqlobject.dberrors.DuplicateEntryError:
