@@ -127,7 +127,9 @@ def ComposeDatabaseUri(config, cache=False):
       'db_password': config.get("database", "password"),
       'cache': 'true' if cache else 'false',
   }
-  logging.debug("db_name: %(db_name)s, db_user: %(db_user)s" % db_data)
+  display_db_data = dict(db_data)
+  display_db_data['db_password'] = '******'
+  logging.debug("db_data: %s" % display_db_data)
   if db_data["db_type"] == "mysql":
     db_uri_tmpl = ("%(db_type)s://%(db_user)s:%(db_password)s@%(db_host)s/"
                    "%(db_name)s?cache=%(cache)s")
