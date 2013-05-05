@@ -84,6 +84,12 @@ class Maintainer(sqlobject.SQLObject):
         self.full_name or "Maintainer full name unknown",
         self.ObfuscatedEmail())
 
+  def Username(self):
+    if '@' in self.email:
+      return self.email.split('@')[0]
+    else:
+      return unicode(self)
+
   def GetRestRepr(self):
     return {
         'maintainer_email': self.email,
