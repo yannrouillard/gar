@@ -6,10 +6,11 @@ try:
 except ImportError:
   import unittest
 
-import csw_upload_pkg
 import mox
 import rest
 import copy
+
+from lib.python import csw_upload_pkg
 
 GDB_STRUCT_8 = {
     "arch": "sparc",
@@ -400,6 +401,19 @@ class Srv4UploaderDataDrivenUnitTest(mox.MoxTestBase):
         csw_upload_pkg.DataError,
         su.SortFilenames,
         wrong_order)
+
+  def testPluralS0(self):
+    su = csw_upload_pkg.Srv4Uploader(None, None)
+    self.assertEqual('s', su._PluralS(0))
+
+  def testPluralS1(self):
+    su = csw_upload_pkg.Srv4Uploader(None, None)
+    self.assertEqual('', su._PluralS(0))
+
+  def testPluralSMany(self):
+    su = csw_upload_pkg.Srv4Uploader(None, None)
+    self.assertEqual('s', su._PluralS(2))
+
 
 class Srv4UploaderIntegrationUnitTest(mox.MoxTestBase):
 

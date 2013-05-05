@@ -4,7 +4,7 @@
 
 import copy
 import datetime
-import unittest
+import unittest2 as unittest
 import package_checks as pc
 import checkpkg_lib
 import os.path
@@ -12,26 +12,31 @@ import mox
 import logging
 import pprint
 
-import testdata.checkpkg_test_data_CSWdjvulibrert as td_1
-import testdata.checkpkg_pkgs_data_minimal as td_2
-import testdata.rpaths
-from testdata.rsync_pkg_stats import pkgstats as rsync_stats
-from testdata.tree_stats import pkgstats as tree_stats
-from testdata.ivtools_stats import pkgstats as ivtools_stats
-from testdata.sudo_stats import pkgstats as sudo_stats
-from testdata.javasvn_stats import pkgstats as javasvn_stats
-from testdata.neon_stats import pkgstats as neon_stats
-from testdata.bdb48_stats import pkgstat_objs as bdb48_stats
-from testdata.mercurial_stats import pkgstat_objs as mercurial_stats
-from testdata.cadaver_stats import pkgstats as cadaver_stats
-from testdata.vsftpd_stats import pkgstats as vsftpd_stats
-from testdata import stubs
+from lib.python.testdata import checkpkg_pkgs_data_minimal as td_2
+from lib.python.testdata.djvulibre_rt_stats import pkgstats as td_1
+
+from lib.python import representations
+from lib.python import fake_pkgstats_composer
+from lib.python.testdata import rpaths
+from lib.python.testdata import stubs
+
+from lib.python.testdata.berkeleydb48_stats import pkgstats as bdb48_stats
+from lib.python.testdata.cadaver_stats import pkgstats as cadaver_stats
+from lib.python.testdata.ivtools_stats import pkgstats as ivtools_stats
+from lib.python.testdata.javasvn_stats import pkgstats as javasvn_stats
+from lib.python.testdata.mercurial_stats import pkgstats as mercurial_stats
+from lib.python.testdata.neon_stats import pkgstats as neon_stats
+from lib.python.testdata.rsync_stats import pkgstats as rsync_stats
+from lib.python.testdata.sudo_stats import pkgstats as sudo_stats
+from lib.python.testdata.tree_stats import pkgstats as tree_stats
+from lib.python.testdata.vsftpd_stats import pkgstats as vsftpd_stats
 
 DEFAULT_PKG_STATS = None
 DEFAULT_PKG_DATA = rsync_stats[0]
 
 
 class CheckTestHelper(object):
+  """Class responsible for making calls to package check functions."""
 
   def setUp(self):
     super(CheckTestHelper, self).setUp()
@@ -59,6 +64,23 @@ class CheckTestHelper(object):
                         self.logger_mock, self.messenger)
     self.mox.VerifyAll()
 
+  def TestPkgmapEntry(self, entry_path):
+    return representations.PkgmapEntry(
+            line=None, class_=None, mode=None, owner=None, group=None,
+            path=entry_path,
+            target=None, type_=None, major=None, minor=None, size=None,
+            cksum=None, modtime=None, pkgnames=[],
+    )
+
+  def TestBinaryDumpInfo(self, binary_path, needed_sonames, runpath):
+    return representations.BinaryDumpInfo(
+        base_name=os.path.basename(binary_path),
+        needed_sonames=needed_sonames,
+        path=binary_path, rpath_set=True, runpath_rpath_the_same=True,
+        runpath_set=True, runpath=runpath, soname=None)
+
+
+# Test cases below.
 
 class TestMultipleDepends(CheckTestHelper, unittest.TestCase):
   FUNCTION_NAME = 'CheckMultipleDepends'
@@ -333,7 +355,7 @@ class TestCheckLinkingAgainstSunX11(CheckTestHelper, unittest.TestCase):
 class TestSetCheckLibraries(CheckTestHelper, unittest.TestCase):
   FUNCTION_NAME = 'SetCheckLibraries'
   def testInterface(self):
-    self.pkg_data = [td_1.pkg_data]
+    self.pkg_data = td_1
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libCrun.so.1').AndReturn(
       {u'/usr/lib': [u'SUNWlibC'],
        u'/usr/lib/sparcv9': [u'SUNWlibC']})
@@ -374,9 +396,48 @@ class TestSetCheckLibraries(CheckTestHelper, unittest.TestCase):
         '/opt/csw/share/doc').AndReturn([u"CSWcommon"])
     self.error_mgr_mock.GetPkgByPath(
         '/opt/csw/lib/sparcv9').AndReturn([u"CSWcommon"])
-    for i in range(38):
-      self.error_mgr_mock.NeedFile(
-          mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.ReportError('CSWdjvulibrert', 'no-direct-binding', mox.IsA(str))
+    self.error_mgr_mock.ReportError('CSWdjvulibrert', 'no-direct-binding', mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.ReportError('CSWdjvulibrert', 'no-direct-binding', mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.NeedFile(mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
+    self.error_mgr_mock.ReportError('CSWdjvulibrert', 'no-direct-binding', mox.IsA(str))
 
 
 class TestCheckPstamp(CheckTestHelper, unittest.TestCase):
@@ -651,31 +712,30 @@ class TestSharedLibsInAnInstalledPackageToo(CheckTestHelper,
   """
   FUNCTION_NAME = 'SetCheckLibraries'
   # Contains only necessary bits.  The data listed in full.
-  CSWbar_DATA = {
+  @property
+  def CSWbar_DATA(self):
+    return {
         'basic_stats': {'catalogname': 'bar',
                         'pkgname': 'CSWbar',
                         'stats_version': 1},
-        'binaries_dump_info': [{'base_name': 'bar',
-                                'needed sonames': ['libfoo.so.1'],
-                                'path': 'opt/csw/bin/bar',
-                                'runpath': ('/opt/csw/lib',),
-                                # Making sonames optional, because they are.
-                                # 'soname': 'rsync',
-                                # 'soname_guessed': True
-                                }],
+        'binaries_dump_info': [
+          representations.BinaryDumpInfo(
+            base_name='bar',
+            needed_sonames=['libfoo.so.1'],
+            path='opt/csw/bin/bar',
+            rpath_set=False,
+            runpath_rpath_the_same=False,
+            runpath_set=True,
+            runpath=('/opt/csw/lib',),
+            soname=None,
+          ),
+        ],
+        'binary_md5_sums': [
+          ('opt/csw/bin/bar', 'fake_md5'),
+        ],
+
         'depends': (('CSWlibfoo', None),),
         'isalist': (),
-        'binaries_elf_info': { 'opt/csw/bin/bar': {
-                                 'version definition': [],
-                                 'version needed': [],
-                                 'symbol table': [
-                                   { 'soname': 'libfoo.so.1',
-                                     'symbol': 'foo',
-                                     'flags': 'DBL',
-                                     'shndx': 'UNDEF',
-                                     'bind': 'GLOB' }]
-                                 }
-                             },
         'pkgmap': [],
         'files_metadata': [
                     {'endian': 'Little endian',
@@ -684,11 +744,22 @@ class TestSharedLibsInAnInstalledPackageToo(CheckTestHelper,
                      'mime_type_by_hachoir': u'application/x-executable',
                      'path': 'opt/csw/bin/bar/libfoo.so.1'},
         ],
+        'elfdump_info': {
+          'fake_md5': {
+            'version definition': [],
+            'version needed': [],
+            'symbol table': [
+              { 'soname': 'libfoo.so.1',
+                'symbol': 'foo',
+                'flags': 'DBL',
+                'shndx': 'UNDEF',
+                'bind': 'GLOB' }]}},
   }
   CSWlibfoo_DATA = {
         'basic_stats': {'catalogname': 'libfoo',
                         'pkgname': 'CSWlibfoo',
                         'stats_version': 1},
+        'binary_md5_sums': [],
         'binaries_dump_info': [],
         'depends': [],
         'isalist': (),
@@ -710,54 +781,41 @@ class TestSharedLibsOnlyIsalist(CheckTestHelper, unittest.TestCase):
   """/opt/csw/lib/$ISALIST in RPATH without the bare /opt/csw/lib."""
   FUNCTION_NAME = 'SetCheckLibraries'
   # Contains only necessary bits.  The data listed in full.
-  CSWbar_DATA = {
-        'basic_stats': {'catalogname': 'bar',
-                        'pkgname': 'CSWbar',
-                        'stats_version': 1},
-        'binaries_dump_info': [
-                               {'base_name': 'bar',
-                                'needed sonames': ['libfoo.so.1'],
-                                'path': 'opt/csw/bin/bar',
-                                'runpath': ('/opt/csw/lib/$ISALIST',),
-                               },
-                               {'base_name': 'libfoo.so.1',
-                                'needed sonames': (),
-                                'path': 'opt/csw/lib/libfoo.so.1',
-                                'runpath': ('/opt/csw/lib/$ISALIST',),
-                               },
-                              ],
-        # 'depends': (),
-        'depends': ((u"CSWcommon", ""),),
-        'isalist': ('foo'),
-        'binaries_elf_info': {
-          'opt/csw/bin/bar': {
-            'version definition': [],
-            'version needed': [],
-            'symbol table': [
-              { 'soname': 'libfoo.so.1',
-                'symbol': 'foo',
-                'flags': 'DBL',
-                'shndx': 'UNDEF',
-                'bind': 'GLOB' },
-             ]},
-          'opt/csw/lib/libfoo.so.1': {
-            'version definition': [],
-            'version needed': [],
-            'symbol table': [],
-          }
-        },
-        'pkgmap': [
-          { 'path': '/opt/csw/lib/libfoo.so.1', },
-          { 'path': '/opt/csw/bin/bar', },
-                  ],
-        }
+
+  def setUp(self):
+    super(TestSharedLibsOnlyIsalist, self).setUp()
+    self.plc = fake_pkgstats_composer.PkgstatsListComposer('SunOS5.9', 'sparc')
+    self.plc.AddPkgname('CSWbar')
+    elfinfo_1 = {'version definition': [],
+                 'version needed': [],
+                 'symbol table': [{'soname': 'libfoo.so.1', 'symbol': 'foo',
+                                   'flags': 'DBL', 'shndx': 'UNDEF',
+                                   'bind': 'GLOB'}]}
+    self.plc.AddFile('CSWbar', self.TestPkgmapEntry('/opt/csw/lib/libfoo.so.1'),
+                     representations.FileMetadata(path='/opt/csw/lib/libfoo.so.1',
+                                                  mime_type='application/x-sharedlib',
+                                                  machine_id=3),
+                     self.TestBinaryDumpInfo('opt/csw/bin/bar',
+                                             ['libfoo.so.1'],
+                                             ['/opt/csw/lib/$ISALIST']),
+                     elfinfo_1)
+    elfinfo_2 = {'version definition': [], 'version needed': [],
+                 'symbol table': []}
+    self.plc.AddFile('CSWbar', self.TestPkgmapEntry('/opt/csw/bin/bar'),
+                     representations.FileMetadata(path='/opt/csw/bin/bar',
+                                                  mime_type='application/x-executable',
+                                                  machine_id=3),
+                     self.TestBinaryDumpInfo('opt/csw/lib/libfoo.so.1',
+                                             [], ['/opt/csw/lib/$ISALIST']),
+                     elfinfo_2)
+
   def testInterface(self):
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libfoo.so.1').AndReturn({})
     self.error_mgr_mock.GetPkgByPath('/opt/csw/lib').AndReturn([u"CSWcommon"])
     self.error_mgr_mock.GetPkgByPath('/opt/csw/bin').AndReturn([u"CSWcommon"])
     self.error_mgr_mock.NeedFile('CSWbar', '/opt/csw/lib/libfoo.so.1',
-        'opt/csw/bin/bar needs the libfoo.so.1 soname')
-    self.pkg_data = [self.CSWbar_DATA]
+                                 'opt/csw/bin/bar needs the libfoo.so.1 soname')
+    self.pkg_data = self.plc.GetPkgstats()
 
 
 class TestCheckLibrariesDlopenLibs_1(CheckTestHelper, unittest.TestCase):
@@ -1096,13 +1154,37 @@ class TestSetCheckSharedLibraryConsistencyIvtools(CheckTestHelper,
   """This tests for a case in which the SONAME that we're looking for doesn't
   match the filename."""
   FUNCTION_NAME = 'SetCheckLibraries'
+
+  def LeaveNamedBinaries(self, pkg_data, names_list):
+    def NameMatches(name):
+      return any(y in name for y in names_list)
+
+    pkg_data[0]['binaries'] = [
+        x for x in pkg_data[0]['binaries']
+        if NameMatches(x)]
+    pkg_data[0]['binaries_dump_info'] = [
+        x for x in pkg_data[0]['binaries_dump_info']
+        if NameMatches(x[0])]
+    pkg_data[0]['files_metadata'] = [
+        x for x in pkg_data[0]['files_metadata']
+        if NameMatches(x[0])]
+    pkg_data[0]['binary_md5_sums'] = [
+        x for x in pkg_data[0]['binary_md5_sums']
+        if NameMatches(x[0])]
+    return pkg_data
+
   def testNeedsSoname(self):
-    self.pkg_data = ivtools_stats
+    self.pkg_data = self.LeaveNamedBinaries(copy.deepcopy(ivtools_stats),
+                                            ['/libComUnidraw.so', '/comdraw'])
+    self.pkg_data[0]['binaries_dump_info'][0][3] = self.pkg_data[0]['binaries_dump_info'][0][3][:1]
+    # pprint.pprint(self.pkg_data[0])
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libComUnidraw.so').AndReturn({})
     self.error_mgr_mock.GetPkgByPath('/opt/csw').AndReturn([u"CSWcommon"])
-    self.error_mgr_mock.GetPkgByPath('/opt/csw/lib').AndReturn([u"CSWcommon"])
+    # self.error_mgr_mock.GetPkgByPath('/opt/csw/lib').AndReturn([u"CSWcommon"])
     self.error_mgr_mock.NeedFile('CSWivtools', '/opt/csw/lib/libComUnidraw.so',
         'opt/csw/bin/comdraw needs the libComUnidraw.so soname')
+    self.error_mgr_mock.ReportError('CSWivtools', 'no-direct-binding',
+        '/opt/csw/bin/comdraw is not directly bound to soname libComUnidraw.so')
     # This may be enabled once checkpkg supports directory dependencies.
     # self.error_mgr_mock.ReportError('CSWivtools', 'missing-dependency', u'CSWcommon')
 
@@ -1113,7 +1195,7 @@ class TestSetCheckDirectoryDependencies(CheckTestHelper,
   FUNCTION_NAME = 'SetCheckLibraries'
 
   def testDirectoryNeeded(self):
-    self.pkg_data = ivtools_stats
+    self.pkg_data = copy.deepcopy(ivtools_stats)
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libComUnidraw.so').AndReturn({})
     self.error_mgr_mock.GetPkgByPath('/opt/csw').AndReturn([u"CSWcommon"])
     self.error_mgr_mock.GetPkgByPath('/opt/csw/lib').AndReturn([u"CSWcommon"])
@@ -1332,29 +1414,14 @@ class TestSetCheckDoubleDepends(CheckTestHelper, unittest.TestCase):
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libCrun.so.1').AndReturn({u'/usr/lib': [u'SUNWlibC'], u'/usr/lib/sparcv9': [u'SUNWlibCx']})
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libCstd.so.1').AndReturn({u'/usr/lib': [u'SUNWlibC'], u'/usr/lib/sparcv9': [u'SUNWlibCx']})
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libapr-1.so.0').AndReturn({u'/opt/csw/apache2/lib': [u'CSWapache2rt'], u'/opt/csw/lib': [u'CSWapr'], u'/opt/csw/lib/sparcv9': [u'CSWapr']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libaprutil-1.so.0').AndReturn({u'/opt/csw/apache2/lib': [u'CSWapache2rt']})
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libc.so.1').AndReturn({u'/usr/lib': [u'SUNWcsl'], u'/usr/lib/libp/sparcv9': [u'SUNWdplx'], u'/usr/lib/sparcv9': [u'SUNWcslx']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libdl.so.1').AndReturn({u'/etc/lib': [u'SUNWcsr'], u'/usr/lib': [u'SUNWcsl'], u'/usr/lib/sparcv9': [u'SUNWcslx']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libexpat.so.1').AndReturn({u'/opt/csw/lib': [u'CSWexpat'], u'/opt/csw/lib/sparcv9': [u'CSWexpat']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libiconv.so.2').AndReturn({u'/opt/csw/lib': [u'CSWiconv'], u'/opt/csw/lib/sparcv9': [u'CSWiconv']})
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libintl.so.8').AndReturn({u'/opt/csw/lib': [u'CSWggettextrt'], u'/opt/csw/lib/sparcv9': [u'CSWggettextrt']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('liblber-2.4.so.2').AndReturn({u'/opt/csw/lib': [u'CSWoldaprt'], u'/opt/csw/lib/sparcv9': [u'CSWoldaprt']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libldap-2.4.so.2').AndReturn({u'/opt/csw/lib': [u'CSWoldaprt'], u'/opt/csw/lib/sparcv9': [u'CSWoldaprt']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libneon.so.27').AndReturn({u'/opt/csw/lib': [u'CSWneon'], u'/opt/csw/lib/sparcv9': [u'CSWneon']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libnsl.so.1').AndReturn({u'/usr/lib': [u'SUNWcsl'], u'/usr/lib/sparcv9': [u'SUNWcslx']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libpthread.so.1').AndReturn({u'/usr/lib': [u'SUNWcsl'], u'/usr/lib/sparcv9': [u'SUNWcslx']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('librt.so.1').AndReturn({u'/usr/lib': [u'SUNWcsl'], u'/usr/lib/sparcv9': [u'SUNWcslx']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libsendfile.so.1').AndReturn({u'/usr/lib': [u'SUNWcsl'], u'/usr/lib/sparcv9': [u'SUNWcslx']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libsocket.so.1').AndReturn({u'/usr/lib': [u'SUNWcsl'], u'/usr/lib/sparcv9': [u'SUNWcslx']})
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libsvn_client-1.so.0').AndReturn({u'/opt/csw/lib/svn': [u'CSWsvn']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libsvn_delta-1.so.0').AndReturn({u'/opt/csw/lib/svn': [u'CSWsvn']})
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libsvn_diff-1.so.0').AndReturn({u'/opt/csw/lib/svn': [u'CSWsvn']})
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libsvn_fs-1.so.0').AndReturn({u'/opt/csw/lib/svn': [u'CSWsvn']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libsvn_ra-1.so.0').AndReturn({u'/opt/csw/lib/svn': [u'CSWsvn']})
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libsvn_repos-1.so.0').AndReturn({u'/opt/csw/lib/svn': [u'CSWsvn']})
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libsvn_subr-1.so.0').AndReturn({u'/opt/csw/lib/svn': [u'CSWsvn']})
     self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libsvn_wc-1.so.0').AndReturn({u'/opt/csw/lib/svn': [u'CSWsvn']})
-    self.error_mgr_mock.GetPathsAndPkgnamesByBasename('libuuid.so.1').AndReturn({u'/usr/lib': [u'SUNWcsl'], u'/usr/lib/sparcv9': [u'SUNWcslx']})
 
     self.error_mgr_mock.GetPkgByPath('/opt/csw/lib').AndReturn([u'CSWgdbm',
       u'CSWlibnet', u'CSWbinutils', u'CSWcairomm', u'CSWtcpwrap',
@@ -1409,7 +1476,7 @@ class TestSetCheckDoubleDepends(CheckTestHelper, unittest.TestCase):
       u'CSWgnomedesktop', u'CSWnautilus', u'CSWlibofx', u'CSWgamin',
       u'CSWpkgutil', u'CSWgcc3core', u'CSWgnomemime2', u'CSWglib'])
 
-    for i in range(27):
+    for i in range(11):
       self.error_mgr_mock.NeedFile(
           mox.IsA(str), mox.IsA(unicode), mox.IsA(str))
 

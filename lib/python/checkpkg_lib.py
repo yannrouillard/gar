@@ -3,31 +3,30 @@
 # This file is supposed to drain the checkpkg.py file until is becomes
 # empty and goes away.
 
-import copy
 from Cheetah import Template
-import logging
-import getpass
-import package_stats
-import package_checks
-import sqlobject
-import collections
-import itertools
-import progressbar
-import database
-import models as m
-import textwrap
-import os.path
-import tag
-import pprint
-import operator
-import common_constants
-import sharedlib_utils
-import mute_progressbar
-import cPickle
-import dependency_checks
 from sqlobject import sqlbuilder
+import collections
+import copy
+import getpass
+import itertools
+import logging
+import mute_progressbar
+import operator
+import os.path
+import pprint
+import progressbar
 import re
+import sqlobject
+import textwrap
 
+from lib.python import common_constants
+from lib.python import configuration
+from lib.python import database
+from lib.python import errors
+from lib.python import models as m
+from lib.python import rest
+from lib.python import sharedlib_utils
+from lib.python import tag
 
 DESCRIPTION_RE = r"^([\S]+) - (.*)$"
 
@@ -43,57 +42,32 @@ class Error(Exception):
   """Generic error."""
 
 
-class CatalogDatabaseError(Error):
+class CatalogDatabaseError(errors.Error):
   """Problem with the catalog database."""
 
 
-class DataError(Error):
+class DataError(errors.Error):
   """A problem with reading required data."""
 
 
-class ConfigurationError(Error):
+class ConfigurationError(errors.Error):
   """A problem with checkpkg configuration."""
 
 
-class PackageError(Error):
+class PackageError(errors.Error):
   pass
 
 
-class StdoutSyntaxError(Error):
+class StdoutSyntaxError(errors.Error):
   pass
 
 
-class SetupError(Error):
+class SetupError(errors.Error):
   pass
 
 
-class InternalDataError(Error):
+class InternalDataError(errors.Error):
   """Problem with internal checkpkg data structures."""
-
-
-def GetPackageStatsByFilenamesOrMd5s(args, debug=False):
-  filenames = []
-  md5s = []
-  for arg in args:
-    if struct_util.IsMd5(arg):
-      md5s.append(arg)
-    else:
-      filenames.append(arg)
-  srv4_pkgs = [inspective_package.InspectiveCswSrv4File(x) for x in filenames]
-  pkgstat_objs = []
-  pbar = progressbar.ProgressBar()
-  pbar.maxval = len(md5s) + len(srv4_pkgs)
-  pbar.start()
-  counter = itertools.count()
-  for pkg in srv4_pkgs:
-    pkgstat_objs.append(package_stats.PackageStats(pkg, debug=debug))
-    pbar.update(counter.next())
-  for md5 in md5s:
-    pkgstat_objs.append(package_stats.PackageStats(None, md5sum=md5, debug=debug))
-    pbar.update(counter.next())
-  pbar.finish()
-  return pkgstat_objs
-
 
 
 REPORT_TMPL = u"""#if $missing_deps or $surplus_deps or $orphan_sonames
@@ -204,6 +178,16 @@ class SqlobjectHelperMixin(object):
     return self.triad_cache[key]
 
 
+class LazyElfinfo(object):
+  """Used at runtime for lazy fetches of elfdump info data."""
+
+  def __init__(self, rest_client):
+    self.rest_client = rest_client
+
+  def __getitem__(self, md5_sum):
+    return self.rest_client.GetBlob('elfdump', md5_sum)
+
+
 class CheckpkgManagerBase(SqlobjectHelperMixin):
   """Common functions between the older and newer calling functions."""
 
@@ -220,6 +204,10 @@ class CheckpkgManagerBase(SqlobjectHelperMixin):
     self._ResetState()
     self.individual_checks = []
     self.set_checks = []
+    config = configuration.GetConfig()
+    self.rest_client = rest.RestClient(
+        pkgdb_url=config.get('rest', 'pkgdb'),
+        releases_url=config.get('rest', 'releases'))
 
   def _ResetState(self):
     self.errors = []
@@ -277,16 +265,12 @@ class CheckpkgManagerBase(SqlobjectHelperMixin):
       #
       # Python strings are already implementing the flyweight pattern. What's
       # left is lists and dictionaries.
-      i = counter.next()
-      if stats_obj.data_obj:
-        raw_pkg_data = stats_obj.GetStatsStruct()
-      else:
-        raise CatalogDatabaseError(
-            "%s (%s) is missing the data object."
-            % (stats_obj.basename, stats_obj.md5_sum))
-      pkg_data = raw_pkg_data
-      pkgs_data.append(pkg_data)
-      pbar.update(i)
+      raw_pkg_data = self.rest_client.GetBlob('pkgstats', stats_obj.md5_sum)
+      # Registering a callback allowing the receiver to retrieve the elfdump
+      # information when necessary.
+      raw_pkg_data['elfdump_info'] = LazyElfinfo(self.rest_client)
+      pkgs_data.append(raw_pkg_data)
+      pbar.update(counter.next())
     pbar.finish()
     return pkgs_data
 
@@ -606,6 +590,7 @@ class CheckpkgManager2(CheckpkgManagerBase):
     if self.checks_registered:
       logging.debug("Checks already registered.")
       return
+    from lib.python import package_checks
     checkpkg_module = package_checks
     members = dir(checkpkg_module)
     for member_name in members:
@@ -1057,7 +1042,7 @@ class Catalog(SqlobjectHelperMixin):
           oac,
           m.CswFile.q.path==file_path,
           m.CswFile.q.basename==basename,
-          m.Srv4FileStats.q.registered==True)
+          m.Srv4FileStats.q.registered_level_two==True)
       join = [
           sqlbuilder.INNERJOINOn(None,
             m.Srv4FileStats,
@@ -1134,7 +1119,7 @@ class Catalog(SqlobjectHelperMixin):
     if not who:
       who = 'unknown'
     # There are only i386 and sparc catalogs.
-    if arch != 'i386' and arch != 'sparc':
+    if arch not in ('i386', 'sparc'):
       raise CatalogDatabaseError("Wrong architecture: %s" % arch)
     sqo_osrel, sqo_arch, sqo_catrel = self.GetSqlobjectTriad(
         osrel, arch, catrel)
@@ -1143,7 +1128,7 @@ class Catalog(SqlobjectHelperMixin):
           "Specified package does not match the catalog. "
           "Package: %s, catalog: %s %s %s"
           % (sqo_srv4, osrel, arch, catrel))
-    if not sqo_srv4.registered:
+    if not sqo_srv4.registered_level_two:
       raise CatalogDatabaseError(
           "Package %s (%s) is not registered for releases."
           % (sqo_srv4.basename, sqo_srv4.md5_sum))
@@ -1176,12 +1161,12 @@ class Catalog(SqlobjectHelperMixin):
             m.Srv4FileInCatalog.q.catrel==sqo_catrel,
             m.Srv4FileInCatalog.q.srv4file==sqo_srv4))
     if res.count():
-      logging.warning("%s is already part of %s %s %s",
+      logging.debug("%s is already part of %s %s %s",
                       sqo_srv4, osrel, arch, catrel)
       # Our srv4 is already part of that catalog.
       return
     # SQL INSERT happens here.
-    obj = m.Srv4FileInCatalog(
+    m.Srv4FileInCatalog(
         arch=sqo_arch,
         osrel=sqo_osrel,
         catrel=sqo_catrel,

@@ -102,7 +102,13 @@ def GetConfig():
       config.set("database", "host", "")
       config.set("database", "user", "")
       config.set("database", "password", "")
-      config.set("database", "auto_manage", "yes")
+      if not config.has_section("rest"):
+        config.add_section("rest")
+      config.set("rest", "pkgdb", "http://localhost:8000")
+      config.set("rest", "releases", "http://localhost:8001")
+      if not config.has_section("buildfarm"):
+        config.add_section("buildfarm")
+      config.set("buildfarm", "catalog_root", "/export/opencsw")
       with open(config_file, "w") as fd:
         config.write(fd)
       logging.debug("Configuration has been written.")
@@ -137,7 +143,7 @@ def ComposeDatabaseUri(config, cache=False):
     db_uri_tmpl = "%(db_type)s://%(db_name)s?cache=%(cache)s"
   else:
     raise ConfigurationError(
-        "Database type %s is not supported" % repr(db_data["db_type"]))
+        "Database type %r is not supported" % db_data["db_type"])
   db_uri = db_uri_tmpl % db_data
   return db_uri
 

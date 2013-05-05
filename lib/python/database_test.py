@@ -1,10 +1,10 @@
 #!/usr/bin/env python2.6
 
-import unittest
-import database
+import unittest2 as unittest
 import mox
-import models
 
+from lib.python import models
+from lib.python import database
 
 class DatabaseManagerUnitTest(mox.MoxTestBase):
 

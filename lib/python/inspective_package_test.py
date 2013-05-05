@@ -208,7 +208,7 @@ class InspectivePackageUnitTest(mox.MoxTestBase, unittest.TestCase):
     self.assertEqual([BINARY_DUMP_INFO], ip.GetBinaryDumpInfo())
 
 
-  def testGetBinaryElfInfoRoot(self):
+  def testCollectAndSavePackageElfinfoRoot(self):
     self.mox.StubOutWithMock(tempfile, 'TemporaryFile')
     fake_file = io.BytesIO()
     fake_file.write(ELFDUMP_OUTPUT)
@@ -235,9 +235,9 @@ class InspectivePackageUnitTest(mox.MoxTestBase, unittest.TestCase):
         stdout=mox.IgnoreArg()).AndReturn((0, "", ""))
     self.mox.ReplayAll()
 
-    self.assertEqual(BINARY_ELFINFO, ip.GetBinaryElfInfo())
+    self.assertEqual(BINARY_ELFINFO, ip.CollectAndSavePackageElfinfo())
 
-  def testGetBinaryElfInfoReloc(self):
+  def testCollectAndSavePackageElfinfoReloc(self):
     self.mox.StubOutWithMock(tempfile, 'TemporaryFile')
     fake_file = io.BytesIO()
     fake_file.write(ELFDUMP_OUTPUT)
@@ -261,9 +261,9 @@ class InspectivePackageUnitTest(mox.MoxTestBase, unittest.TestCase):
     shell.ShellCommand(args, allow_error=True, stdout=fake_file).AndReturn((0, "", ""))
     self.mox.ReplayAll()
 
-    self.assertEqual(BINARY_ELFINFO, ip.GetBinaryElfInfo())
+    self.assertEqual(BINARY_ELFINFO, ip.CollectAndSavePackageElfinfo())
 
-  def testGetBinaryElfInfoWithIgnoredErrors(self):
+  def testCollectAndSavePackageElfinfoWithIgnoredErrors(self):
     fake_binary = 'opt/csw/bin/foo'
     fake_package_path = '/fake/path/CSWfoo'
     fake_elfdump_output = '''
@@ -322,7 +322,7 @@ Syminfo Section:  .SUNW_syminfo
         stdout=fake_file).AndReturn((0, fake_elfdump_output, fake_elfdump_errors))
     self.mox.ReplayAll()
 
-    self.assertEqual(fake_binary_elfinfo, ip.GetBinaryElfInfo())
+    self.assertEqual(fake_binary_elfinfo, ip.CollectAndSavePackageElfinfo())
 
 class PackageStatsUnitTest(unittest.TestCase):
 

@@ -36,9 +36,10 @@ $else:
 
 
 <li>Size: $pkg.size bytes</li>
-<li>Registered: $pkg.registered</li>
+<li>Registration Level 1: $pkg.registered_level_one</li>
+<li>Registration Level 2: $pkg.registered_level_two</li>
 
-$if pkg.registered:
+$if pkg.registered_level_two:
   <li><a href="files/">Files of $pkg.basename</a></li>
 
 <li>Use to generate catalogs: $pkg.use_to_generate_catalogs</li>

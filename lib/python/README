@@ -1,13 +1,21 @@
 This directory contains Python libraries, mostly related to checkpkg.
 
+== TODO items ==
+
+- populating allpkgs based on an existing catalog tree
+- Testing uploads (locally)
+- Auth for users on the buildfarm
+- Unit tests (unit test data)
+  - what about callbacks?
+
 == Private Buildfarm ==
 
 Notes:
 
 - When running a RESTful web app, /tmp is used to store temporary files.
-  Therefore, if you're uploading a large file, the server side process will
-  fail with an error. Make sure that the /tmp directory has about 1GB of free
-  space.
+  Therefore, if you're uploading a large file and your system has little space
+  in /tmp, the server side process will fail with an error. Make sure that the
+  /tmp directory has about 1GB of free space.
   If you increase the swap size, /tmp will grow too.
   References:
   http://docs.oracle.com/cd/E19963-01/html/821-1448/ggrln.html
@@ -38,15 +46,8 @@ Checks implemented:
 
 Development plan for checkpkg:
   Primary focus:
-  - Add support for tiering (core/active/unsupported)
-  - Remeber, against which catalogs has a package been checked, and
-    when.
-  - Add MySQL database garbage collection
-    - Currently, the database is growing indefinitely, at the time of writing
-      it's 1.5GB uncompressed.
-  - When adding a package to a catalog, store the time and date of the
-    addition
-    - Can be generalized as logging
+  - Allow to create a package database on a machine with 1-1.5GB of RAM
+    (e.g. for virtual machines)
   - Add fields to the srv4_file_stats table:
     - source URL (for grouping by software)
     - Description (to search for the word 'transitional')
@@ -75,6 +76,7 @@ Items done:
 - Notify maintainers when their package is available from mirrors
 - Add support for the 'overridden' field in the database
 - Support for relocatable packages
+- Database objects garbage collection
 
 Known problems:
 - libmagic fails sometimes when processing the whole catalog

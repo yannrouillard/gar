@@ -7,27 +7,31 @@ import os
 sys.path.append(os.path.join(os.path.split(__file__)[0], "..", ".."))
 
 import cjson
+import datetime
 import json
 import logging
 import pprint
 import sqlobject
-import web
 import time
 import re
+import web
 
-from lib.python import models
-from lib.python import configuration
+from sqlobject import sqlbuilder
+
 from lib.python import checkpkg_lib
+from lib.python import configuration
+from lib.python import models
 from lib.python import representations
 from lib.web import web_lib
-import datetime
-from sqlobject import sqlbuilder
+
 
 urls_html = (
   r'/', 'index',
+  r'/favicon\.ico', 'Favicon',
   r'/srv4/', 'Srv4List',
   r'/srv4/([0-9a-f]{32})/', 'Srv4Detail',
   r'/srv4/([0-9a-f]{32})/files/', 'Srv4DetailFiles',
+  r'/srv4/([0-9a-f]{32})/struct-dump/', 'Srv4StructDump',
   r'/catalogs/', 'CatalogList',
   r'/catalogs/([\w-]+)-(sparc|i386)-(SunOS[^-]+)/', 'CatalogDetail',
   r'/maintainers/', 'MaintainerList',
@@ -37,6 +41,7 @@ urls_html = (
   r'/error-tags/([^/]+)/', 'ErrorTagDetail',
   r'/catalognames/', 'CatalognameList',
   r'/catalognames/([^/]+)/', 'Catalogname',
+  r'/form-redirect/', 'Redirection',
 )
 urls_rest = (
   r'/rest/svr4/recent/', 'RestSrv4List',
@@ -71,22 +76,16 @@ templatedir = os.path.join(os.path.dirname(__file__), "templates/")
 render = web.template.render(templatedir)
 
 
-# TODO(maciej): Convert this extension to cjson.
-class PkgStatsEncoder(json.JSONEncoder):
-  """Maps frozensets to lists."""
-  def default(self, obj):
-    if isinstance(obj, frozenset):
-      # Python 2.6 doesn't have the dictionary comprehension
-      # return {x: None for x in obj}
-      return list(obj)
-    if isinstance(obj, datetime.datetime):
-      return obj.isoformat()
-    return json.JSONEncoder.default(self, obj)
-
-
 class index(object):
+
   def GET(self):
     return render.index()
+
+
+class Favicon(object):
+
+  def GET(self):
+    return ""
 
 
 class Srv4List(object):
@@ -114,17 +113,9 @@ class Srv4Detail(object):
     osrels = models.OsRelease.select()
     catrels = models.CatalogRelease.select()
     all_tags = list(models.CheckpkgErrorTag.selectBy(srv4_file=pkg))
-    pkgstats_raw = (
-      "As of January 2013, the stats stored are so big that "
-      "processing them can take several minutes before they "
-      "can be served. Disabling until a proper solution "
-      "is in place.\n")
-    if re.match(r'[0-9a-f]{32}', md5_sum):
-      pkgstats_raw += '\n'
-      pkgstats_raw += ('curl -s http://buildfarm.opencsw.org/pkgdb/rest/srv4/'
-                       '%s/pkg-stats/ '
-                       '| python -m json.tool | less' % md5_sum)
-    # pkgstats_raw = pprint.pformat(pkg.GetStatsStruct())
+    pkg_stats_sqo = models.Srv4FileStatsBlob.selectBy(md5_sum=md5_sum).getOne()
+    pkg_stats = cjson.decode(pkg_stats_sqo.json)
+    pkg_stats_raw = pprint.pformat(pkg_stats)
     if pkg.arch.name == 'all':
       archs = models.Architecture.select(models.Architecture.q.name!='all')
     else:
@@ -140,21 +131,33 @@ class Srv4Detail(object):
           tags_by_cat[key] = tags
           tags_and_catalogs.append((osrel, arch, catrel, tags))
     return render.Srv4Detail(pkg, overrides, tags_by_cat, all_tags,
-        tags_and_catalogs, pkgstats_raw, pkgmap)
+        tags_and_catalogs, pkg_stats_raw, pkgmap)
+
+
+class Srv4StructDump(object):
+
+  def GET(self, md5_sum):
+    blob = models.Srv4FileStatsBlob.selectBy(md5_sum=md5_sum).getOne()
+    struct = cjson.decode(blob.json)
+    basename = struct['basic_stats']['pkg_basename']
+    struct_dump = pprint.pformat(struct)
+    return render.Srv4StructDump(basename, struct_dump)
 
 
 class Catalogname(object):
+
   def GET(self, catalogname):
     try:
       pkgs = models.Srv4FileStats.selectBy(
           catalogname=catalogname,
-          registered=True).orderBy('mtime')
+          registered_level_two=True).orderBy('mtime')
       return render.Catalogname(catalogname, pkgs)
     except sqlobject.main.SQLObjectNotFound, e:
       raise web.notfound()
 
 
 class CatalognameList(object):
+
   def GET(self):
     try:
       connection = models.Srv4FileStats._connection
@@ -164,7 +167,7 @@ class CatalognameList(object):
           distinct=True,
           where=sqlobject.AND(
             models.Srv4FileStats.q.use_to_generate_catalogs==True,
-            models.Srv4FileStats.q.registered==True),
+            models.Srv4FileStats.q.registered_level_two==True),
           orderBy=models.Srv4FileStats.q.catalogname)))
       rows_by_letter = {}
       for row in rows:
@@ -177,6 +180,7 @@ class CatalognameList(object):
 
 
 class Srv4DetailFiles(object):
+
   def GET(self, md5_sum):
     try:
       srv4 = models.Srv4FileStats.selectBy(md5_sum=md5_sum).getOne()
@@ -187,6 +191,7 @@ class Srv4DetailFiles(object):
 
 
 class CatalogList(object):
+
   def GET(self):
     """Return a list of catalogs.
 
@@ -200,7 +205,7 @@ class CatalogList(object):
     """
     archs = models.Architecture.select()
     osrels = models.OsRelease.select()
-    catrels = models.CatalogRelease.select()
+    catrels = models.CatalogRelease.select().orderBy('name')
     table = []
     for catrel in catrels:
       row = [catrel.name]
@@ -222,6 +227,7 @@ class CatalogList(object):
 
 
 class CatalogDetail(object):
+
   def GET(self, catrel_name, arch_name, osrel_name):
     cat_name = " ".join((catrel_name, arch_name, osrel_name))
     try:
@@ -237,6 +243,7 @@ class CatalogDetail(object):
 
 
 class MaintainerList(object):
+
   def GET(self):
     maintainers = models.Maintainer.select().orderBy('email')
     names = []
@@ -251,12 +258,13 @@ class MaintainerList(object):
 
 
 class MaintainerDetail(object):
+
   def GET(self, id):
     maintainer = models.Maintainer.selectBy(id=id).getOne()
     pkgs = models.Srv4FileStats.select(
         sqlobject.AND(
           models.Srv4FileStats.q.maintainer==maintainer,
-          models.Srv4FileStats.q.registered==True,
+          models.Srv4FileStats.q.registered_level_two==True,
         ),
     ).orderBy('basename')
     return render.MaintainerDetail(maintainer, pkgs)
@@ -293,12 +301,13 @@ class RestMaintainerDetailByName(object):
 
 
 class MaintainerCheckpkgReport(object):
+
   def GET(self, id):
     maintainer = models.Maintainer.selectBy(id=id).getOne()
     pkgs = models.Srv4FileStats.select(
         sqlobject.AND(
           models.Srv4FileStats.q.maintainer==maintainer,
-          models.Srv4FileStats.q.registered==True,
+          models.Srv4FileStats.q.registered_level_two==True,
         ),
     ).orderBy('basename')
     tags_by_md5 = {}
@@ -315,6 +324,7 @@ class MaintainerCheckpkgReport(object):
 
 
 class ErrorTagDetail(object):
+
   def GET(self, tag_name):
     join = [
         sqlbuilder.INNERJOINOn(None,
@@ -324,7 +334,7 @@ class ErrorTagDetail(object):
     tags = models.CheckpkgErrorTag.select(
         sqlobject.AND(
           models.CheckpkgErrorTag.q.tag_name==tag_name,
-          models.Srv4FileStats.q.registered==True,
+          models.Srv4FileStats.q.registered_level_two==True,
           models.Srv4FileStats.q.use_to_generate_catalogs==True,
           ),
         join=join,
@@ -332,6 +342,7 @@ class ErrorTagDetail(object):
     return render.ErrorTagDetail(tag_name, tags)
 
 class ErrorTagList(object):
+
   def GET(self):
     connection = models.CheckpkgErrorTag._connection
     rows = connection.queryAll(connection.sqlrepr(
@@ -362,6 +373,7 @@ class RestCatalogDetail(object):
 
 
 class PkgnameByFilename(object):
+
   def GET(self, catrel, arch, osrel):
     user_data = web.input()
     filename = user_data.filename
@@ -381,6 +393,7 @@ class PkgnameByFilename(object):
 
 
 class PkgnamesAndPathsByBasename(object):
+
   def GET(self, catrel, arch, osrel):
     user_data = web.input()
     try:
@@ -476,7 +489,7 @@ class RestSrv4FullStats(object):
       return pkg.data_obj.pickle
     else:
       data_structure = pkg.GetStatsStruct()
-      return json.dumps(data_structure, cls=PkgStatsEncoder)
+      return cjson.encode(data_structure)
 
 
 class Srv4ByCatAndCatalogname(object):
@@ -488,7 +501,9 @@ class Srv4ByCatAndCatalogname(object):
       sqo_osrel, sqo_arch, sqo_catrel = models.GetSqoTriad(
           osrel_name, arch_name, catrel_name)
     except sqlobject.main.SQLObjectNotFound:
-      raise web.notfound()
+      raise web.notfound(
+          cjson.encode({'message': 'catalog %s %s %s not found'
+                                   % (osrel_name, arch_name, catrel_name)}))
     join = [
         sqlbuilder.INNERJOINOn(None,
           models.Srv4FileInCatalog,
@@ -509,9 +524,9 @@ class Srv4ByCatAndCatalogname(object):
       web.header('Content-type', mimetype)
       return cjson.encode(data)
     except sqlobject.main.SQLObjectNotFound:
-      raise web.notfound()
-    except sqlobject.dberrors.OperationalError, e:
-      raise web.internalerror(e)
+      raise web.notfound('Query returned no results.')
+    except sqlobject.dberrors.OperationalError as exc:
+      raise web.internalerror(exc)
 
 
 class Srv4ByCatAndPkgname(object):
@@ -575,7 +590,19 @@ class RestSrv4List(object):
     return response
 
 
+class Redirection(object):
+  """A helper URL to redirect POST forms into GET urls."""
+
+  def GET(self):
+    user_data = web.input(redirection_type='', md5_sum='')
+    if user_data['redirection_type'] == 'svr4_struct_dump':
+      raise web.seeother('../srv4/%s/struct-dump/' % user_data['md5_sum'])
+    raise web.badrequest('Could not handle your redirection request (%r).'
+                         % user_data['redirection_type'])
+
+
 class RestCatalogList(object):
+
   def GET(self):
     archs = models.Architecture.select()
     osrels = models.OsRelease.select()
@@ -690,14 +717,17 @@ class CatalogTiming(object):
 web.webapi.internalerror = web.debugerror
 
 
-def app_wrapper():
+app = web.application(urls, globals())
+
+def app_wrapper(app):
   web_lib.ConnectToDatabase()
-  app = web.application(urls, globals())
   logging.basicConfig(level=logging.DEBUG)
   return app.wsgifunc()
-
-application = app_wrapper()
 
 
 if __name__ == "__main__":
   app.run()
+else:
+  application = app_wrapper(app)
+  from paste.exceptions.errormiddleware import ErrorMiddleware
+  application = ErrorMiddleware(application, debug=True)

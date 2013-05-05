@@ -1,11 +1,13 @@
 #!/usr/bin/env python2.6
 
-import unittest
+import unittest2 as unittest
 import mox
-import test_base
-import models
 import sqlobject
 import datetime
+
+from lib.python import models
+from lib.python import test_base
+
 
 class CheckpkgErrorTagUnitTest(unittest.TestCase):
 
@@ -34,7 +36,9 @@ class CheckpkgErrorTagUnitTest(unittest.TestCase):
     self.assertEquals(t1, t2)
 
 
-class Srv4FileStatsUnitTest(test_base.SqlObjectTestMixin, mox.MoxTestBase):
+class Srv4FileStatsUnitTest(test_base.SqlObjectTestMixin,
+                            mox.MoxTestBase,
+                            unittest.TestCase):
 
   def setUp(self):
     super(Srv4FileStatsUnitTest, self).setUp()
@@ -50,8 +54,6 @@ class Srv4FileStatsUnitTest(test_base.SqlObjectTestMixin, mox.MoxTestBase):
         arch=self.sqo_arch,
         basename="foo.pkg",
         catalogname="foo",
-        data_obj=None,
-        data_obj_mimetype='text/plain',
         filename_arch=self.sqo_arch,
         maintainer=self.maintainer,
         md5_sum="not a real one",
@@ -59,7 +61,8 @@ class Srv4FileStatsUnitTest(test_base.SqlObjectTestMixin, mox.MoxTestBase):
         mtime=datetime.datetime.now(),
         os_rel=self.sqo_osrel,
         pkginst=self.pkginst,
-        registered=True,
+        registered_level_one=True,
+        registered_level_two=True,
         use_to_generate_catalogs=True,
         rev="2011.01.01",
         stats_version=0,
@@ -82,4 +85,3 @@ class Srv4FileStatsUnitTest(test_base.SqlObjectTestMixin, mox.MoxTestBase):
 
 if __name__ == '__main__':
   unittest.main()
-

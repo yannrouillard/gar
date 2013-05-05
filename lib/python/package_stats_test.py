@@ -2,79 +2,38 @@
 
 import copy
 import unittest
-import package_stats
-import checkpkg_lib
 import database
 import sqlobject
-import models as m
 import test_base
 import logging
 import mox
-import inspective_package
-import opencsw
 import datetime
-import pkgmap
+
+from lib.python import checkpkg_lib
+from lib.python import configuration
+from lib.python import models as m
+from lib.python import opencsw
+from lib.python import package_stats
+from lib.python import pkgmap
+from lib.python import rest
 
 from testdata.tree_stats import pkgstats as tree_stats
 from testdata.neon_stats import pkgstats as neon_stats
 
 
-class PackageStatsWithDbUnitTest(test_base.SqlObjectTestMixin,
-                           unittest.TestCase):
+class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
+                              mox.MoxTestBase,
+                              unittest.TestCase):
 
   def setUp(self):
-    super(PackageStatsWithDbUnitTest, self).setUp()
-    self.mox = mox.Mox()
+    super(DatabaseIntegrationTest, self).setUp()
+    self.mock_rest_client = self.mox.CreateMock(rest.RestClient)
+    self.mox.StubOutWithMock(rest, 'RestClient')
+    self.mock_config = self.mox.CreateMockAnything()
+    self.mox.StubOutWithMock(configuration, 'GetConfig')
+    # configuration.GetConfig().AndReturn(self.mock_config)
+    # mock_config.get('rest', 'base_url').AndReturn('http://baz')
 
-  def test_CollectStats(self):
-    """Test if it's possible to collect stats.
-
-    It's a real showdown of a part of code I didn't want to unit test
-    earlier.  It's possible to see how the law of Demeter was violated,
-    leading to a confusing API.
-    """
-    mock_srv4 = self.mox.CreateMock(
-        inspective_package.InspectiveCswSrv4File)
-    mock_dirpkg = self.mox.CreateMock(
-        inspective_package.InspectivePackage)
-    mock_pkgmap = self.mox.CreateMock(
-        pkgmap.Pkgmap)
-    mock_srv4.GetInspectivePkg().AndReturn(mock_dirpkg)
-    mock_srv4.pkg_path = "/tmp/foo-1.2,REV=1234.12.11-SunOS5.8-sparc-CSW.pkg.gz"
-    mock_dirpkg.pkgname = "MOCKpkgname"
-    mock_dirpkg.GetOverrides().AndReturn([])
-    mock_dirpkg.GetCatalogname().AndReturn("mock_catalogname")
-    mock_srv4.GetMd5sum().AndReturn("mock md5sum")
-    mock_srv4.GetSize().AndReturn(42)
-    mock_dirpkg.GetDependencies().AndReturn(([], []))
-    mock_dirpkg.ListBinaries().AndReturn([])
-    mock_dirpkg.GetBinaryDumpInfo().AndReturn([])
-    mock_srv4.GetPkgchkOutput().AndReturn((0, "", ""))
-    mock_dirpkg.GetObsoletedBy().AndReturn(([], []))
-    mock_dirpkg.GetParsedPkginfo().AndReturn({
-      "ARCH": "sparc",
-      "EMAIL": "maintainer@example.com",
-      "NAME": "foo - Package of foo",
-      })
-    mock_dirpkg.GetPkgmap().AndReturn(mock_pkgmap)
-    mock_pkgmap.entries = []
-    mock_dirpkg.GetFilesContaining(mox.IsA(tuple)).AndReturn([])
-    mock_dirpkg.GetFilesMetadata().AndReturn([])
-    mock_srv4.GetMtime().AndReturn(datetime.datetime(2010, 12, 8, 7, 52, 54))
-    mock_dirpkg.GetBinaryElfInfo().AndReturn({})
-    pkgstats = package_stats.PackageStats(mock_srv4)
-    self.mox.ReplayAll()
-    data_structure = pkgstats._CollectStats(True)
-    self.mox.VerifyAll()
-    self.assertEqual(
-        "1234.12.11",
-        data_structure["basic_stats"]["parsed_basename"]["revision_info"]["REV"])
-    self.assertEqual('2010-12-08T07:52:54',
-                     data_structure["mtime"])
-
-
-class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
-                              unittest.TestCase):
 
   class TestPackageStats(package_stats.PackageStats):
     pass
@@ -83,10 +42,16 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     pass
 
   def testWithoutInitialDataImport(self):
+    # configuration.GetConfig().AndReturn(self.mock_config)
+    # self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     res = m.Architecture.select(m.Architecture.q.name=='sparc')
     self.assertRaises(sqlobject.SQLObjectNotFound, res.getOne)
 
   def DisabledtestInitialDataImport(self):
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.dbc.InitialDataImport()
     res = m.Architecture.select(m.Architecture.q.name=='sparc')
     self.assertEqual(u'sparc', res.getOne().name)
@@ -94,6 +59,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     self.assertEqual(u'SunOS5.10', res.getOne().short_name)
 
   def testImportSrv4(self):
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     md5_sum = tree_stats[0]["basic_stats"]["md5_sum"]
     self.assertEqual(u'1e43fa1c7e637b25d9356ad516ae0403', md5_sum)
     self.TestPackageStats.SaveStats(tree_stats[0])
@@ -106,6 +74,7 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     self.assertEqual(md5_sum, new_data["basic_stats"]["md5_sum"])
 
   def testImportOverrides(self):
+    self.mox.ReplayAll()
     md5_sum = tree_stats[0]["basic_stats"]["md5_sum"]
     self.assertEqual(u'1e43fa1c7e637b25d9356ad516ae0403', md5_sum)
     new_stats = copy.deepcopy(tree_stats[0])
@@ -119,6 +88,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     self.assertEquals("bad-rpath-entry", o.tag_name)
 
   def testSaveStatsDependencies(self):
+    # configuration.GetConfig().AndReturn(self.mock_config)
+    # self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     md5_sum = tree_stats[0]["basic_stats"]["md5_sum"]
     self.assertEqual(u'1e43fa1c7e637b25d9356ad516ae0403', md5_sum)
     new_stats = copy.deepcopy(tree_stats[0])
@@ -128,6 +100,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     self.assertEquals(0, len(depends))
 
   def testImportPkgDependencies(self):
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     md5_sum = tree_stats[0]["basic_stats"]["md5_sum"]
     self.assertEqual(u'1e43fa1c7e637b25d9356ad516ae0403', md5_sum)
     new_stats = copy.deepcopy(tree_stats[0])
@@ -140,7 +115,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     self.assertEquals(u"CSWcommon", dep.pkginst.pkgname)
 
   def testImportPkgDependenciesReplace(self):
-    """Make sure deps are not imported twice."""
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     md5_sum = tree_stats[0]["basic_stats"]["md5_sum"]
     self.assertEqual(u'1e43fa1c7e637b25d9356ad516ae0403', md5_sum)
     new_stats = copy.deepcopy(tree_stats[0])
@@ -154,7 +131,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     self.assertEquals(u"CSWcommon", dep.pkginst.pkgname)
 
   def testImportPkg(self):
-    """Registers the package in the database."""
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     package_stats.PackageStats.ImportPkg(neon_stats[0])
     # basename=u'libneon.so.26.0.4' path=u'/opt/csw/lib'
     res = m.CswFile.select(
@@ -167,7 +146,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     self.assertEqual(line, f.line)
 
   def testImportPkgLatin1EncodedFile(self):
-    """Registers the package in the database."""
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     neon_stats2 = copy.deepcopy(neon_stats[0])
     latin1_pkgmap_entry = {
       'class': 'none',
@@ -190,12 +171,16 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     self.assertEqual(expected_line, f.line)
 
   def testImportPkgAlreadyExisting(self):
-    """Registers an already saved package in the database."""
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     package_stats.PackageStats.SaveStats(neon_stats[0])
     package_stats.PackageStats.ImportPkg(neon_stats[0])
 
   def testImportPkgIdempotence(self):
-    """Files shouldn't be imported twice for one package."""
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     package_stats.PackageStats.ImportPkg(neon_stats[0])
     package_stats.PackageStats.ImportPkg(neon_stats[0])
     res = m.CswFile.select(
@@ -205,7 +190,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     self.assertEquals(1, res.count())
 
   def testImportPkgIdempotenceWithReplace(self):
-    """Files shouldn't be imported twice for one package."""
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     package_stats.PackageStats.ImportPkg(neon_stats[0])
     package_stats.PackageStats.ImportPkg(neon_stats[0], replace=True)
     res = m.CswFile.select(
@@ -215,6 +202,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     self.assertEquals(1, res.count())
 
   def testRegisterTwoPkgs(self):
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.TestPackageStats.ImportPkg(neon_stats[0])
     neon_stats2 = copy.deepcopy(neon_stats[0])
     neon_stats2["basic_stats"]["md5_sum"] = "another pkg"
@@ -237,7 +227,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     # If no exception was thrown, the record is there in the database.
 
   def testAddSrv4ToCatalogNotRegistered(self):
-    """Unregistered package should not be added to any catalogs."""
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.dbc.InitialDataImport()
     sqo_srv4 = self.TestPackageStats.ImportPkg(neon_stats[0])
     sqo_srv4.registered = False
@@ -257,7 +249,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
             c.AddSrv4ToCatalog, stats, 'SunOS5.9', 'sparc', 'unstable')
 
   def testAssignSrv4ToCatalogArchFromFile(self):
-    """If a package has 'all' in the filename, import it to all catalogs."""
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.dbc.InitialDataImport()
     x86_stats = copy.deepcopy(neon_stats[0])
     x86_stats["pkginfo"]["ARCH"] = "i386"
@@ -267,6 +261,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     c.AddSrv4ToCatalog(stats, 'SunOS5.9', 'sparc', 'unstable')
 
   def testRemoveSrv4FromCatalog(self):
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.dbc.InitialDataImport()
     stats = self.TestPackageStats.ImportPkg(neon_stats[0])
     c = self.TestCatalog()
@@ -300,7 +297,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
 
 
   def testRetrievePathsMatchCatalog(self):
-    """Make sure that returned paths match the right catalog."""
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.dbc.InitialDataImport()
     sqo_pkg1 = self.TestPackageStats.ImportPkg(neon_stats[0])
     neon_stats2 = copy.deepcopy(neon_stats[0])
@@ -319,13 +318,23 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
           u'libneon.so.26.0.4', 'SunOS5.9', 'i386', 'unstable'))
 
   def testRetrievePathsMatchCatalogUnregisterd(self):
-    """Make sure we're returning files for registered packages only."""
-    self.dbc.InitialDataImport()
-    sqo_pkg1 = self.TestPackageStats.ImportPkg(neon_stats[0])
     neon_stats2 = copy.deepcopy(neon_stats[0])
     neon_stats2["basic_stats"]["md5_sum"] = "another pkg"
     neon_stats2["basic_stats"]["pkgname"] = "CSWanother"
-    sqo_pkg2 = self.TestPackageStats.ImportPkg(neon_stats2)
+    configuration.GetConfig().AndReturn(self.mock_config)
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    rest.RestClient('http://baz').AndReturn(self.mock_rest_client)
+    rest.RestClient('http://baz').AndReturn(self.mock_rest_client)
+    self.mock_rest_client.GetPkgstatsByMd5(
+        'd74a2f65ef0caff0bdde7310007764a8').AndReturn(neon_stats[0])
+    self.mock_rest_client.GetPkgstatsByMd5('another pkg').AndReturn(neon_stats2)
+    self.mox.ReplayAll()
+
+    self.dbc.InitialDataImport()
+    sqo_pkg1 = self.TestPackageStats.ImportPkg(neon_stats[0]['basic_stats']['md5_sum'])
+    sqo_pkg2 = self.TestPackageStats.ImportPkg(neon_stats2['basic_stats']['md5_sum'])
     c = self.TestCatalog()
     c.AddSrv4ToCatalog(sqo_pkg1, 'SunOS5.9', 'i386', 'unstable')
     c.AddSrv4ToCatalog(sqo_pkg2, 'SunOS5.9', 'i386', 'legacy')
@@ -337,6 +346,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
           u'libneon.so.26.0.4', 'SunOS5.9', 'i386', 'unstable'))
 
   def testGetInstalledPackages(self):
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.dbc.InitialDataImport()
     sqo_pkg1 = self.TestPackageStats.ImportPkg(neon_stats[0])
     c = self.TestCatalog()
@@ -346,6 +358,8 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
         c.GetInstalledPackages('SunOS5.9', 'i386', 'unstable'))
 
   def testDuplicatePkginstPassesIfItIsTheSameOne(self):
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
     self.dbc.InitialDataImport()
     neon_stats2 = copy.deepcopy(neon_stats[0])
     neon_stats2["basic_stats"]["md5_sum"] = "another pkg"
@@ -359,6 +373,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     c.AddSrv4ToCatalog(sqo_pkg1, *args)
 
   def testDuplicatePkginstThrowsError(self):
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.dbc.InitialDataImport()
     neon_stats2 = copy.deepcopy(neon_stats[0])
     neon_stats2["basic_stats"]["md5_sum"] = "another pkg"
@@ -376,6 +393,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
             sqo_pkg2, *args)
 
   def testDuplicateCatalognameThrowsError(self):
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.dbc.InitialDataImport()
     neon_stats2 = copy.deepcopy(neon_stats[0])
     neon_stats2["basic_stats"]["md5_sum"] = "another pkg"
@@ -393,6 +413,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
             sqo_pkg2, *args)
 
   def testDuplicatePkginstDoesNotThrowErrorIfDifferentCatalog(self):
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.dbc.InitialDataImport()
     neon_stats2 = copy.deepcopy(neon_stats[0])
     neon_stats2["basic_stats"]["md5_sum"] = "another pkg"
@@ -406,6 +429,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
     c.AddSrv4ToCatalog(sqo_pkg1, 'SunOS5.10', 'i386', 'unstable')
 
   def testGetPkgByPath(self):
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.dbc.InitialDataImport()
     sqo_pkg1 = self.TestPackageStats.ImportPkg(neon_stats[0])
     c = self.TestCatalog()
@@ -417,7 +443,9 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
                        "SunOS5.9", "i386", "unstable"))
 
   def testGetPkgByPathWrongCatalog(self):
-    """Makes sure packages from wrong catalogs are not returned."""
+    configuration.GetConfig().AndReturn(self.mock_config)
+    self.mock_config.get('rest', 'base_url').AndReturn('http://baz')
+    self.mox.ReplayAll()
     self.dbc.InitialDataImport()
     sqo_pkg1 = self.TestPackageStats.ImportPkg(neon_stats[0])
     c = self.TestCatalog()
@@ -438,4 +466,5 @@ class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.CRITICAL)
+  # logging.basicConfig(level=logging.DEBUG)
   unittest.main()

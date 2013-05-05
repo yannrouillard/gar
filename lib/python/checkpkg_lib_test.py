@@ -6,16 +6,10 @@ try:
 except ImportError:
   import unittest
 
-import checkpkg_lib
-import common_constants
 import copy
 import cPickle
 import database
-import inspective_package
-import models
 import mox
-import package_stats
-import package_stats
 import pprint
 import re
 import sqlite3
@@ -23,6 +17,11 @@ import sqlobject
 import tag
 import test_base
 from testdata import stubs
+
+from lib.python import models
+from lib.python import package_stats
+from lib.python import checkpkg_lib
+from lib.python import common_constants
 
 from testdata.neon_stats import pkgstats as neon_stats
 
