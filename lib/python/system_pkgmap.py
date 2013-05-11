@@ -153,17 +153,22 @@ class Indexer(OsIndexingBase):
     else:
       (f_mode, f_owner, f_group) = parts[3:6]
 
-    d = {
-        "path": f_path,
-        "target": f_target,
-        "type": f_type,
-        "mode": f_mode,
-        "owner": f_owner,
-        "group": f_group,
-        "pkgnames": pkgnames,
-        "line": line,
-    }
-    return d
+    return representations.PkgmapEntry(
+        line=line,
+        class_=None,
+        mode=f_mode,
+        owner=f_owner,
+        group=f_group,
+        path=f_path,
+        target=f_target,
+        type_=f_type,
+        major=None,
+        minor=None,
+        size=None,
+        cksum=None,
+        modtime=None,
+        pkgnames=pkgnames,
+    )
 
   def _ParseSrv4PkgmapLine(self, line):
     """Parses one line of /var/sadm/install/contents.

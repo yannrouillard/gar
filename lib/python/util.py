@@ -5,15 +5,13 @@ import magic
 import os
 import re
 
-from elftools.elf.elffile import ELFFile
-from elftools.elf.enums import ENUM_E_MACHINE
-
 from lib.python import common_constants
 from lib.python import errors
 from lib.python import ldd_emul
 from lib.python import representations
 from lib.python import sharedlib_utils
 from lib.python import shell
+from lib.python.collect_binary_elfinfo import ElfExtractor
 
 
 ROOT_RE = re.compile(r"^(reloc|root)/")
@@ -21,18 +19,6 @@ ROOT_RE = re.compile(r"^(reloc|root)/")
 
 class MimeTypeError(errors.Error):
   """A problem with file's mime type."""
-
-
-def GetMachineIdOfBinary(full_path):
-  """Wraps the use of elftools."""
-  with open(full_path, 'rb') as elf_fd:
-    elffile = ELFFile(elf_fd)
-    e_machine = elffile.header['e_machine']
-    if e_machine == 15666:
-      # /usr/X11/lib/modules/v10002d.uc
-      # This file causes us trouble. Let's say it's Intel.
-      e_machine = 'EM_386' 
-    return ENUM_E_MACHINE[e_machine]
 
 
 def StripRe(string_to_strip, strip_re):
@@ -108,22 +94,9 @@ def GetFileMetadata(file_magic, base_dir, file_path):
     else:
       raise MimeTypeError(msg)
   if sharedlib_utils.IsBinary({"mime_type": file_info_mime_type}, check_consistency=False):
-    file_info_machine_id = GetMachineIdOfBinary(full_path)
+    elffile = ElfExtractor(full_path)
+    file_info_machine_id = elffile.GetMachineIdOfBinary()
   else:
     file_info_machine_id = None
   return representations.FileMetadata(
       file_path, file_info_mime_type, file_info_machine_id)
-
-
-def GetBinariesDumpInfo(binaries_list):
-  env = copy.copy(os.environ)
-  env["LD_NOAUXFLTR"] = "1"
-  binaries_dump_info = []
-  for binary_in_pkg, binary_base_name, binary_abs_path in binaries_list:
-    args = [common_constants.DUMP_BIN, "-Lv", binary_abs_path]
-    retcode, stdout, stderr = shell.ShellCommand(args, env)
-    binary_data = ldd_emul.ParseDumpOutput(stdout,
-                                           binary_in_pkg,
-                                           binary_base_name)
-    binaries_dump_info.append(binary_data)
-  return binaries_dump_info

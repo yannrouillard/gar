@@ -23,6 +23,7 @@ from lib.python import sharedlib_utils
 from lib.python import shell
 from lib.python import util
 from lib.python import representations
+from lib.python.collect_binary_elfinfo import ElfExtractor
 
 ADMIN_FILE_CONTENT = """
 basedir=default
@@ -449,15 +450,37 @@ class Unpacker(object):
     # man ld.so.1 for more info on this hack
     basedir = self.GetBasedir()
     binaries_list = []
+    binaries_dump_info = []
     for binary in self.ListBinaries():
       binary_abs_path = os.path.join(
           self._dir_format_base_dir, self.GetFilesDir(), binary)
+      binary_base_name = os.path.basename(binary)
       if basedir:
         binary = os.path.join(basedir, binary)
-      binary_base_name = os.path.basename(binary)
-      binaries_list.append((binary, binary_base_name, binary_abs_path))
+      
+      elf_extractor = ElfExtractor(binary_abs_path)
+      binary_dump_info = elf_extractor.CollectBinaryDumpinfo()
 
-    return util.GetBinariesDumpInfo(binaries_list)
+      runpath_to_save = []
+      if binary_dump_info['runpath']:
+        runpath_to_save.extend(binary_dump_info['runpath'])
+      elif binary_dump_info['rpath']:
+        runpath_to_save.extend(binary_dump_info['rpath'])
+
+      # Converting runpath and sonames to tuples, which is a hashable data
+      # type and can function as a key in a dict.
+      binary_dump_info = representations.BinaryDumpInfo(
+        binary, binary_base_name,
+        binary_dump_info['soname'],
+        tuple(binary_dump_info['needed_sonames']),
+        tuple(runpath_to_save),
+        (binary_dump_info['runpath'] == binary_dump_info['rpath']),
+        bool(binary_dump_info['rpath']),
+        bool(binary_dump_info['runpath']),
+      )
+      binaries_dump_info.append(binary_dump_info)
+
+    return binaries_dump_info
 
 
   def GetObsoletedBy(self):
@@ -567,17 +590,7 @@ class Unpacker(object):
   def _CollectElfdumpData(self):
     logging.debug("Elfdump data.")
     binary_md5_sums = []
-    bad_binaries = set(['opt/csw/share/Adobe/Reader9/Reader/intelsolaris/'
-                        'plug_ins3d/drvOpenGL.x3d'])
     for binary in self.ListBinaries():
-      binary_is_bad = False
-      for bad_binary in bad_binaries:
-        if bad_binary in binary:
-          logging.warning("Not processing %r because it's known to be bad" % binary)
-          binary_is_bad = True
-          continue
-      if binary_is_bad:
-        continue
       binary_abs_path = os.path.join(
           self._dir_format_base_dir, self.GetFilesDir(), binary)
       args = [os.path.join(os.path.dirname(__file__),
