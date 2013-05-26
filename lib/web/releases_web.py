@@ -436,6 +436,14 @@ class Srv4RelationalLevelTwo(object):
     except errors.DataError as exc:
       raise web.notacceptable(exc)
 
+  def HEAD(self, md5_sum):
+    try:
+      srv4 = models.Srv4FileStats.selectBy(md5_sum=md5_sum).getOne()
+    except sqlobject.main.SQLObjectNotFound:
+      raise web.notfound('Stats not in the database')
+    if not srv4.registered_level_two:
+      raise web.notfound('Stats in the db, but not registered')
+    return ''
 
 web.webapi.internalerror = web.debugerror
 

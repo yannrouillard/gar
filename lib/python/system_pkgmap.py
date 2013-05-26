@@ -490,7 +490,8 @@ class InstallContentsImporter(OsIndexingBase):
       md5_sum = pkgstats['basic_stats']['md5_sum']
       if not self.rest_client.BlobExists('pkgstats', md5_sum):
         self.rest_client.SaveBlob('pkgstats', md5_sum, pkgstats)
-      self.rest_client.RegisterLevelTwo(md5_sum, use_in_catalogs=False)
+      if not self.rest_client.IsRegisteredLevelTwo(md5_sum):
+        self.rest_client.RegisterLevelTwo(md5_sum, use_in_catalogs=False)
       # We need to import these into the regular catalogs.
       # TODO(maciej): Solve the problem of adding a new catalog. All
       # these have to be imported again. (or do they not?)

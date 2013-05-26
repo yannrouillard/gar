@@ -244,11 +244,8 @@ class RestClient(object):
     data = urllib2.urlopen(url).read()
     return cjson.decode(data)
 
-  @retry_decorator.Retry(tries=4, delay=5,
-                         exceptions=(RestCommunicationError, pycurl.error))
-  def BlobExists(self, tag, md5_sum):
-    url = self.releases_url + "/blob/%s/%s/" % (tag, md5_sum)
-    logging.debug('BlobExists(): HEAD %r' % url)
+  def _HttpHeadRequest(self, url):
+    """Make a HTTP HEAD request and return the http code."""
     c = pycurl.Curl()
     d = StringIO()
     h = StringIO()
@@ -263,6 +260,14 @@ class RestClient(object):
     c.perform()
     http_code = c.getinfo(pycurl.HTTP_CODE)
     c.close()
+    return http_code
+
+  @retry_decorator.Retry(tries=4, delay=5,
+                         exceptions=(RestCommunicationError, pycurl.error))
+  def BlobExists(self, tag, md5_sum):
+    url = self.releases_url + "/blob/%s/%s/" % (tag, md5_sum)
+    logging.debug('BlobExists(): HEAD %r' % url)
+    http_code = self._HttpHeadRequest(url)
     if http_code == 404:
       logging.debug("Stats for %s don't exist" % md5_sum)
       return False
@@ -271,8 +276,8 @@ class RestClient(object):
       return True
     else:
       raise RestCommunicationError(
-          "URL %r HTTP code: %d, %r, %r"
-          % (url, http_code, h.getvalue(), d.getvalue()))
+          "URL HEAD %r HTTP code: %d"
+          % (url, http_code))
 
   def _RPC(self, url, query_struct):
     c = pycurl.Curl()
@@ -319,6 +324,20 @@ class RestClient(object):
     self.ValidateMd5(md5_sum)
     url = self.releases_url + "/svr4/%s/db-level-1/" % md5_sum
     return self._CurlPut(url, [])
+
+  @retry_decorator.Retry(tries=4, delay=5,
+                         exceptions=(RestCommunicationError, pycurl.error))
+  def IsRegisteredLevelTwo(self, md5_sum):
+    self.ValidateMd5(md5_sum)
+    url = self.releases_url + '/svr4/%s/db-level-2/' % md5_sum
+    http_code = self._HttpHeadRequest(url)
+    if http_code == 404:
+      return False
+    elif http_code == 200:
+      return True
+    else:
+      raise RestCommunicationError("URL %r HTTP code: %d"
+                                   % (url, http_code))
 
   def RegisterLevelTwo(self, md5_sum, use_in_catalogs=True):
     self.ValidateMd5(md5_sum)
