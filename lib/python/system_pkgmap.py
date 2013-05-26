@@ -531,7 +531,6 @@ class InstallContentsImporter(OsIndexingBase):
     pkgname = pkgname.split(":")[0]
     for c in ('*', '~', '!'):
       pkgname = pkgname.lstrip(c)
-    # logging.debug("d['pkgnames']: %s → %s", pkgname_orig, pkgname)
     return pkgname
 
   def _SkipPrefix(self, pkgname, include_prefixes):
