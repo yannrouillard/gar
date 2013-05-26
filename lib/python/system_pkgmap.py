@@ -477,12 +477,13 @@ class InstallContentsImporter(OsIndexingBase):
         catalog_assignment.destroySelf()
 
   def ImportData(self, data, show_progress=False, include_prefixes=None):
-    logging.debug("Cleaning the catalogs.")
+    logging.debug('Cleaning the catalogs.')
     self._RemoveSystemPackagesFromCatalog(data)
-    logging.debug("Composing fake packages.")
+    logging.debug('Composing fake packages.')
     pkgstats_list = self._ComposePkgstats(data)
     catalogs_to_insert_to = common_constants.DEFAULT_CATALOG_RELEASES
-    logging.info("Inserting system packages into %s." % catalogs_to_insert_to)
+    logging.info('Inserting system packages into %s.'
+                 % ' '.join(catalogs_to_insert_to))
     pbar = self._GetPbar(show_progress)
     pbar.maxval = len(pkgstats_list)
     pbar.start()
@@ -494,7 +495,7 @@ class InstallContentsImporter(OsIndexingBase):
         self.rest_client.RegisterLevelTwo(md5_sum, use_in_catalogs=False)
       # We need to import these into the regular catalogs.
       # TODO(maciej): Solve the problem of adding a new catalog. All
-      # these have to be imported again. (or do they not?)
+      # these have to be imported again.
       for catalog_release in catalogs_to_insert_to:
         self.rest_client.AddSvr4ToCatalog(catalog_release, data['arch'],
                                           data['osrel'], md5_sum)
