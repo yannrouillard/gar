@@ -316,12 +316,12 @@ class JsonStorage(object):
   BLOB_CLASSES = {
       'pkgstats': models.Srv4FileStatsBlob,
       'elfdump': models.ElfdumpInfoBlob,
-      'ldd': models.LddInfoBlob,
   }
 
   def GetBlobClass(self, tag):
     if tag not in self.BLOB_CLASSES:
-      raise web.badrequest('We do not store %r type objects.' % tag)
+      raise web.badrequest(cjson.encode(
+        {'message': 'We do not store %r type objects.' % tag}))
     return self.BLOB_CLASSES[tag]
 
 
@@ -329,7 +329,9 @@ class JsonStorage(object):
     try:
       obj = blob_class.selectBy(md5_sum=md5_sum).getOne()
     except sqlobject.main.SQLObjectNotFound as e:
-      raise web.notfound('Object %s/%s not found.' % (blob_class, md5_sum))
+      raise web.notfound(cjson.encode(
+        {'message': 'Object %s/%s not found.'
+                    % (blob_class, md5_sum)}))
     return obj
 
   def GET(self, tag, md5_sum):
