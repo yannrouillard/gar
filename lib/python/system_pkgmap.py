@@ -579,6 +579,11 @@ class InstallContentsImporter(OsIndexingBase):
       for pkgname in pkgmap_entry.pkgnames:
         pkgname = self.SanitizeInstallContentsPkgname(pkgname)
         if not self._SkipPrefix(pkgname, include_prefixes):
+          # This is a little messy. Some pkgmap_entry objects are the
+          # /opt/csw ones which don't have the metadata collected.
+          # We have to skip them.
+          if pkgmap_entry.path not in metadata_by_file_name:
+            continue
           plc.AddPkgname(pkgname)
           plc.AddFile(pkgname,
                       pkgmap_entry,
