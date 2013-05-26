@@ -204,15 +204,6 @@ class ElfdumpInfoBlob(sqlobject.SQLObject):
   mime_type = sqlobject.UnicodeCol(notNone=True, length=250)
 
 
-class LddInfoBlob(sqlobject.SQLObject):
-  """Holds JSON with elfdump information for a package."""
-  class sqlmeta:
-    cacheValues = False
-  md5_sum = sqlobject.UnicodeCol(notNone=True, unique=True, length=32)
-  json = sqlobject.BLOBCol(notNone=True, length=(2**24 - 1))
-  mime_type = sqlobject.UnicodeCol(notNone=True, length=250)
-
-
 class Srv4FileStats(sqlobject.SQLObject):
   """Represents a srv4 file.
 
