@@ -138,4 +138,3 @@ class CatalogDatabase(CheckpkgDatabaseMixin):
     self.uri = uri
     self.sqo_conn = sqlobject.connectionForURI(self.uri)
     sqlobject.sqlhub.processConnection = self.sqo_conn
-

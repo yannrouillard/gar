@@ -222,8 +222,11 @@ def Libraries(pkg_data, error_mgr, logger, messenger, path_and_pkg_by_basename,
                             'binary_path=%r' % binary_info.path)
       continue
     binary_md5 = binary_md5_by_path[binary_info.path]
+    if not 'elfdump_info' in pkg_data:
+      print 'pkgdata.keys():', pkg_data.keys()
+      print pkg_data['basic_stats']
     # This causes a runtime lookup to be made during checking.
-    binary_elf_info = pkg_data["elfdump_info"][binary_md5]
+    binary_elf_info = pkg_data['elfdump_info'][binary_md5]
 
     needed_libs = set(binary_info.needed_sonames)
     db_libs = set()

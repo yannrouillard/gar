@@ -30,16 +30,12 @@ from lib.python import tag
 
 DESCRIPTION_RE = r"^([\S]+) - (.*)$"
 
-INSTALL_CONTENTS_AVG_LINE_LENGTH = 102.09710677919261
 SYS_DEFAULT_RUNPATH = [
     "/usr/lib/$ISALIST",
     "/usr/lib",
     "/lib/$ISALIST",
     "/lib",
 ]
-
-class Error(Exception):
-  """Generic error."""
 
 
 class CatalogDatabaseError(errors.Error):
@@ -431,8 +427,8 @@ class CheckInterfaceBase(object):
         for pkg in self.pkgs_by_file[file_path]:
           pkgs.add(pkg)
       logging_response = pprint.pformat(pkgs)
-      logging.debug("GetPkgByPath(%s).AndReturn(%s)"
-                    % (file_path, logging_response))
+      # logging.debug("GetPkgByPath(%s).AndReturn(%s)"
+      #               % (file_path, logging_response))
       self.pkgs_by_path_cache[key] = pkgs
     return self.pkgs_by_path_cache[key]
 
@@ -509,8 +505,8 @@ class IndividualCheckInterface(CheckInterfaceBase):
     self.pkgname = pkgname
 
   def ReportError(self, tag_name, tag_info=None, msg=None):
-    logging.debug("self.error_mgr_mock.ReportError(%s, %s, %s)",
-                  repr(tag_name), repr(tag_info), repr(msg))
+    # logging.debug("self.error_mgr_mock.ReportError(%s, %s, %s)",
+    #               repr(tag_name), repr(tag_info), repr(msg))
     self.ReportErrorForPkgname(
         self.pkgname, tag_name, tag_info, msg=msg)
 
@@ -538,9 +534,9 @@ class SetCheckInterface(CheckInterfaceBase):
     self._NeedPackage(pkgname, needed_pkg, reason)
 
   def ReportError(self, pkgname, tag_name, tag_info=None, msg=None):
-    logging.debug("self.error_mgr_mock.ReportError(%s, %s, %s, %s)",
-                  repr(pkgname),
-                  repr(tag_name), repr(tag_info), repr(msg))
+    # logging.debug("self.error_mgr_mock.ReportError(%s, %s, %s, %s)",
+    #               repr(pkgname),
+    #               repr(tag_name), repr(tag_info), repr(msg))
     self.ReportErrorForPkgname(pkgname, tag_name, tag_info, msg)
 
 
@@ -552,16 +548,16 @@ class CheckpkgMessenger(object):
     self.gar_lines = []
 
   def Message(self, m):
-    logging.debug("self.messenger.Message(%s)", repr(m))
+    # logging.debug("self.messenger.Message(%s)", repr(m))
     self.messages.append(m)
 
   def OneTimeMessage(self, key, m):
-    logging.debug("self.messenger.OneTimeMessage(%s, %s)", repr(key), repr(m))
+    # logging.debug("self.messenger.OneTimeMessage(%s, %s)", repr(key), repr(m))
     if key not in self.one_time_messages:
       self.one_time_messages[key] = m
 
   def SuggestGarLine(self, m):
-    logging.debug("self.messenger.SuggestGarLine(%s)", repr(m))
+    # logging.debug("self.messenger.SuggestGarLine(%s)", repr(m))
     self.gar_lines.append(m)
 
 
@@ -807,6 +803,18 @@ class CheckpkgManager2(CheckpkgManagerBase):
         new_missing_dep_groups.add(frozenset(new_missing_deps_group))
     return new_missing_dep_groups
 
+  def _ExaminedFilesByPkg(self, pkgs_data):
+    examined_files_by_pkg = {}
+    for pkg_data in pkgs_data:
+      pkgname = pkg_data["basic_stats"]["pkgname"]
+      examined_files_by_pkg.setdefault(pkgname, set())
+      for entry in pkg_data["pkgmap"]:
+        if "path" in entry and entry["path"]:
+          base_path, base_name = os.path.split(entry["path"])
+          examined_files_by_pkg[pkgname].add((base_path, base_name))
+    return examined_files_by_pkg
+
+
   def GetAllTags(self, stats_obj_list):
     errors = {}
     catalog = Catalog()
@@ -824,14 +832,7 @@ class CheckpkgManager2(CheckpkgManagerBase):
     pbar.start()
     declared_deps_by_pkgname = {}
     # Build a map between packages and files:
-    examined_files_by_pkg = {}
-    for pkg_data in pkgs_data:
-      pkgname = pkg_data["basic_stats"]["pkgname"]
-      examined_files_by_pkg.setdefault(pkgname, set())
-      for entry in pkg_data["pkgmap"]:
-        if "path" in entry and entry["path"]:
-          base_path, base_name = os.path.split(entry["path"])
-          examined_files_by_pkg[pkgname].add((base_path, base_name))
+    examined_files_by_pkg = self._ExaminedFilesByPkg(pkgs_data)
     # Running individual checks
     for pkg_data in pkgs_data:
       pkgname = pkg_data["basic_stats"]["pkgname"]

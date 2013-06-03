@@ -127,3 +127,28 @@ Additional database indexes:
 CREATE INDEX srv4_mtime_idx ON srv4_file_stats(mtime);
 CREATE INDEX srv4_md5_idx ON srv4_file_stats(md5_sum);
 CREATE INDEX catalog_idx ON srv4_file_in_catalog (arch_id, osrel_id, catrel_id);
+
+A query showing how many packages there are in each catalog.
+
+SELECT
+  a.name as arch, o.short_name as osrel, c.name as catrel,
+  s.use_to_generate_catalogs, count(*)
+FROM
+  srv4_file_in_catalog as sit,
+  architecture as a,
+  os_release as o,
+  catalog_release as c,
+  srv4_file_stats as s
+WHERE
+  sit.srv4file_id = s.id
+  and
+  sit.arch_id = a.id
+  and
+  sit.osrel_id = o.id
+  and
+  sit.catrel_id = c.id
+GROUP BY
+  a.id, osrel_id, catrel_id, s.use_to_generate_catalogs
+ORDER BY
+  c.name
+;
