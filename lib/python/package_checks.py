@@ -124,7 +124,6 @@ VENDORURL_RE = r"^(http|ftp)s?\://.+\..+$"
 
 MACHINE_ID_METADATA = common_constants.MACHINE_ID_METADATA
 
-
 ALLOWED_STARTING_PATHS = frozenset([
   "/opt/csw",
   "/etc/opt/csw",
@@ -1286,34 +1285,44 @@ def CheckSharedLibrarySoExtension(pkg_data, error_mgr, logger, messenger):
 def Check64bitBinariesPresence(pkg_data, error_mgr, logger, messenger):
   pkginfo = pkg_data['pkginfo']
   arch = pkginfo['ARCH']
-  if not ('OPENCSW_MODE64' in pkginfo and '64' in pkginfo['OPENCSW_MODE64']):
+
+  if 'OPENCSW_MODE64' not in pkginfo:
+    error_mgr.ReportError('pkginfo-opencsw-mode64-missing',
+                          'OPENCSW_MODE64 is missing from pkginfo')
     return
 
+  if '64' not in pkginfo['OPENCSW_MODE64']:
+    return
+
+  binaries_dump_info = [
+      representations.BinaryDumpInfo._make(x)
+      for x in pkg_data['binaries_dump_info']]
   if 'isaexec' in pkginfo['OPENCSW_MODE64']:
-    binaries = pkg_data['binaries_dump_info']
+    binaries = binaries_dump_info
     binaries_path = '|'.join(common_constants.BASE_BINARY_PATHS)
   else:
-    binaries = [ x for x in pkg_data['binaries_dump_info'] if 'soname' in x ]
+    binaries = [ x for x in binaries_dump_info if x.soname ]
     binaries_path = 'lib|libexec'
 
-  if binaries:
-    paths_64 = {
-        'i386': common_constants.AMD64_PATHS,
-        'sparc': common_constants.SPARCV9_PATHS,
-    }
-    paths_64_str = (
-        r"opt/csw/(%s)/(%s)"
-        % (binaries_path, '|'.join(paths_64[arch])))
-    paths_64_re = re.compile(paths_64_str)
-    for binary_info in binaries:
-      binary_info = representations.BinaryDumpInfo._make(binary_info)
-      if paths_64_re.search(binary_info.path):
-        return
+  if not binaries:
+    return
 
-    error_mgr.ReportError('64-bit-binaries-missing')
-    messenger.Message(
-      "The package contains 32-bit binaries, e.g. %s, "
-      "but it doesn't seem to contain any 64-bit binaries "
-      "in the usual locations. "
-      "Locations checked for 64-bit binaries: %s."
-      % (binaries[0], paths_64_str))
+  paths_64 = {
+      'i386': common_constants.AMD64_PATHS,
+      'sparc': common_constants.SPARCV9_PATHS,
+  }
+  paths_64_str = (
+      r"opt/csw/(%s)/(%s)"
+      % (binaries_path, '|'.join(paths_64[arch])))
+  paths_64_re = re.compile(paths_64_str)
+  for binary_info in binaries:
+    if paths_64_re.search(binary_info.path):
+      return
+
+  error_mgr.ReportError('64-bit-binaries-missing')
+  messenger.Message(
+    "The package contains 32-bit binaries, e.g. %s, "
+    "but it doesn't seem to contain any 64-bit binaries "
+    "in the usual locations. "
+    "Locations checked for 64-bit binaries: %s."
+    % (binaries[0], paths_64_str))
