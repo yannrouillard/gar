@@ -1,5 +1,6 @@
 import logging
 import os
+import pipes
 import signal
 import subprocess
 
@@ -52,7 +53,10 @@ def ShellCommand(args, env=None,
   if retcode and not allow_error:
     logging.critical(stdout)
     logging.critical(stderr)
-    raise ShellError("Running %r has failed, error code: %s" % (args, retcode))
+    raise ShellError(
+        'Running %r has failed, error code: %s. To find out why the command '
+        'failed, please run it in the foreground, like this: %s'
+        % (args, retcode, ' '.join(pipes.quote(x) for x in args)))
 
   return retcode, stdout, stderr
 
