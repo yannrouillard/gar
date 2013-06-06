@@ -50,18 +50,6 @@ class ConfigurationError(errors.Error):
   """A problem with checkpkg configuration."""
 
 
-class PackageError(errors.Error):
-  pass
-
-
-class StdoutSyntaxError(errors.Error):
-  pass
-
-
-class SetupError(errors.Error):
-  pass
-
-
 class InternalDataError(errors.Error):
   """Problem with internal checkpkg data structures."""
 
