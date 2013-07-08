@@ -40,7 +40,7 @@ USAGE = """
        %prog initdb
        %prog system-metadata-to-disk [ <infile-contents> <infile-pkginfo>
                                     [ <outfile> [ <osrel> <arch> ] ] ]
-       %prog import-system-metadata <infile>
+       %prog import-system-metadata <osrel> <arch>
 
   Managing individual packages:
        %prog importpkg <file1> [ ... ]
@@ -63,6 +63,8 @@ USAGE = """
        %prog show filename [options] <filename>
        %prog show files <md5-sum>
 
+  osrel := SunOS5.8 | SunOS5.9 | SunOS5.10 | SunOS5.11
+  arch := i386 | sparc
 
 Examples:
     %prog add-to-cat SunOS5.9 sparc unstable <md5sum>
