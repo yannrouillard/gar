@@ -23,7 +23,6 @@ from lib.python import sharedlib_utils
 from lib.python import shell
 from lib.python import util
 from lib.python import representations
-from lib.python.collect_binary_elfinfo import ElfExtractor
 
 ADMIN_FILE_CONTENT = """
 basedir=default
@@ -449,39 +448,16 @@ class Unpacker(object):
     # Binaries. This could be split off to a separate function.
     # man ld.so.1 for more info on this hack
     basedir = self.GetBasedir()
-    binaries_list = []
     binaries_dump_info = []
     for binary in self.ListBinaries():
       binary_abs_path = os.path.join(
           self._dir_format_base_dir, self.GetFilesDir(), binary)
-      binary_base_name = os.path.basename(binary)
       if basedir:
         binary = os.path.join(basedir, binary)
       
-      elf_extractor = ElfExtractor(binary_abs_path)
-      binary_dump_info = elf_extractor.CollectBinaryDumpinfo()
-
-      runpath_to_save = []
-      if binary_dump_info['runpath']:
-        runpath_to_save.extend(binary_dump_info['runpath'])
-      elif binary_dump_info['rpath']:
-        runpath_to_save.extend(binary_dump_info['rpath'])
-
-      # Converting runpath and sonames to tuples, which is a hashable data
-      # type and can function as a key in a dict.
-      binary_dump_info = representations.BinaryDumpInfo(
-        binary, binary_base_name,
-        binary_dump_info['soname'],
-        tuple(binary_dump_info['needed_sonames']),
-        tuple(runpath_to_save),
-        (binary_dump_info['runpath'] == binary_dump_info['rpath']),
-        bool(binary_dump_info['rpath']),
-        bool(binary_dump_info['runpath']),
-      )
-      binaries_dump_info.append(binary_dump_info)
+      binaries_dump_info.append(util.GetBinaryDumpInfo(binary_abs_path, binary))
 
     return binaries_dump_info
-
 
   def GetObsoletedBy(self):
     """Collects obsolescence information from the package if it exists

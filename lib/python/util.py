@@ -100,3 +100,28 @@ def GetFileMetadata(file_magic, base_dir, file_path):
     file_info_machine_id = None
   return representations.FileMetadata(
       file_path, file_info_mime_type, file_info_machine_id)
+
+def GetBinaryDumpInfo(binary_abs_path, binary):
+  binary_base_name = os.path.basename(binary)
+  elf_extractor = ElfExtractor(binary_abs_path)
+  binary_dump_info = elf_extractor.CollectBinaryDumpinfo()
+
+  runpath_to_save = []
+  if binary_dump_info['runpath']:
+      runpath_to_save.extend(binary_dump_info['runpath'])
+  elif binary_dump_info['rpath']:
+      runpath_to_save.extend(binary_dump_info['rpath'])
+
+  # Converting runpath and sonames to tuples, which is a hashable data
+  # type and can function as a key in a dict.
+  binary_dump_info = representations.BinaryDumpInfo(
+          binary, binary_base_name,
+          binary_dump_info['soname'],
+          tuple(binary_dump_info['needed_sonames']),
+          tuple(runpath_to_save),
+          (binary_dump_info['runpath'] == binary_dump_info['rpath']),
+          bool(binary_dump_info['rpath']),
+          bool(binary_dump_info['runpath']),
+          )
+
+  return binary_dump_info

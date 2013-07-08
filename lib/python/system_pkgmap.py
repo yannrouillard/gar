@@ -435,7 +435,7 @@ class Indexer(OsIndexingBase):
     return files_metadata
 
   def _GetBinariesDumpInfo(self, files_metadata):
-    binaries_list = []
+    binaries_dump_info = []
     for metadata_tuple in files_metadata:
       file_metadata = representations.FileMetadata._make(metadata_tuple)
       d = file_metadata._asdict()
@@ -447,12 +447,11 @@ class Indexer(OsIndexingBase):
         # Need to strip off the leading slash.
         if binary_path.startswith("/"):
           binary_path = binary_path[1:]
-        binary_base_name = os.path.basename(binary_path)
-        binaries_list.append((binary_path, binary_base_name, abs_path))
+        binaries_dump_info.append(
+                util.GetBinaryDumpInfo(abs_path, binary_path))
     sys.stdout.write("\n")
     sys.stdout.flush()
-    return util.GetBinariesDumpInfo(binaries_list)
-
+    return binaries_dump_info
 
 class InstallContentsImporter(OsIndexingBase):
   """Responsible for importing a serialized file into the database."""
