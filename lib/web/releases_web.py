@@ -361,15 +361,30 @@ class JsonStorage(object):
       raise web.badrequest('Missing "json_data" in the request.')
     if 'md5_sum' not in x:
       raise web.badrequest('Missing "md5_sum" in the request.')
+    if md5_sum != x['md5_sum']:
+      raise web.badrequest('URL: %s, request: %s' % (md5_sum, x['md5_sum']))
     json_data = x['json_data']
+    content_hash = hashlib.md5()
+    content_hash.update(json_data)
+    content_md5_sum = content_hash.hexdigest()
     try:
-      obj = BlobClass(md5_sum=md5_sum, json=json_data, mime_type=mime_type)
+      obj = BlobClass(md5_sum=md5_sum, json=json_data, mime_type=mime_type,
+                      content_md5_sum=content_md5_sum)
     except sqlobject.dberrors.DuplicateEntryError:
-      # We want to save / update the new data (idempotence).
-      obj = self.GetObject(BlobClass, md5_sum)
-      obj.mime_type = mime_type
-      obj.json = json_data
-      # sqlobject immediately saves the changes.
+      print "bwah4"
+      # Saving/updating the new data (idempotence).
+      #
+      # This might throw a NotFound exception if the object was deleted
+      # in the meantime. This kind of race condition is inherent to SQL,
+      # so we'll let the exception propagate and fail the query.
+      try:
+        obj = self.GetObject(BlobClass, md5_sum)
+        obj.mime_type = mime_type
+        obj.content_md5_sum = content_md5_sum
+        obj.json = json_data
+        # sqlobject immediately saves the changes.
+      except sqlobject.main.SQLObjectNotFound:
+        raise web.internalerror('A race condition. Sorry, please retry.')
     return cjson.encode({'message': 'Save of %s successful.' % md5_sum})
 
   def DELETE(self, tag, md5_sum):

@@ -173,6 +173,7 @@ class Srv4FileStatsBlob(sqlobject.SQLObject):
     cacheValues = False
   md5_sum = sqlobject.UnicodeCol(notNone=True, unique=True, length=32)
   json = sqlobject.BLOBCol(notNone=True, length=(2**24))
+  content_md5_sum = sqlobject.UnicodeCol(notNone=True, unique=False, length=32)
   mime_type = sqlobject.UnicodeCol(notNone=True, length=250)
   created_on = sqlobject.DateTimeCol(
       notNone=True,
@@ -201,6 +202,7 @@ class ElfdumpInfoBlob(sqlobject.SQLObject):
     cacheValues = False
   md5_sum = sqlobject.UnicodeCol(notNone=True, unique=True, length=32)
   json = sqlobject.BLOBCol(notNone=True, length=(2**24 - 1))
+  content_md5_sum = sqlobject.UnicodeCol(notNone=True, unique=False, length=32)
   mime_type = sqlobject.UnicodeCol(notNone=True, length=250)
 
 
