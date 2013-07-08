@@ -273,7 +273,7 @@ class Srv4CatalogAssignment(object):
         "error_message": unicode(exc),
       })
       web.header('Content-Length', str(len(response)))
-      raise web.notacceptable(response)
+      raise web.badrequest(response)
 
   def DELETE(self, catrel_name, arch_name, osrel_name, md5_sum):
     try:
