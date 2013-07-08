@@ -441,7 +441,7 @@ class Indexer(OsIndexingBase):
       d = file_metadata._asdict()
       if sharedlib_utils.IsBinary(d, allow_missing=True):
         abs_path = d["path"]
-        sys.stdout.write("\r%-78s" % (abs_path))
+        sys.stdout.write("\r%-78s" % (abs_path[:78]))
         sys.stdout.flush()
         binary_path = d["path"]
         # Need to strip off the leading slash.
