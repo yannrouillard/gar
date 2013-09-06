@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 import pipes
@@ -25,7 +26,7 @@ def ShellCommand(args, env=None,
                  stderr=subprocess.PIPE):
   logging.debug("ShellCommand(%r)", args)
   if not env:
-    env = {}
+    env = copy.copy(os.environ)
 
   env['LC_ALL'] = 'C'
 
