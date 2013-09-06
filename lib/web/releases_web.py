@@ -55,6 +55,7 @@ CAN_UPLOAD_TO_CATALOGS = frozenset([
     "dublin",
     "kiel",
     "unstable",
+    "legacy",
 ])
 
 
