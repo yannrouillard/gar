@@ -72,6 +72,7 @@ class Index(object):
 class Favicon(object):
 
   def GET(self):
+    """To reduce the number of 404 messages in the logs."""
     return ""
 
 
@@ -372,7 +373,6 @@ class JsonStorage(object):
       obj = BlobClass(md5_sum=md5_sum, json=json_data, mime_type=mime_type,
                       content_md5_sum=content_md5_sum)
     except sqlobject.dberrors.DuplicateEntryError:
-      print "bwah4"
       # Saving/updating the new data (idempotence).
       #
       # This might throw a NotFound exception if the object was deleted

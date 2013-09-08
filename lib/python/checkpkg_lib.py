@@ -10,7 +10,6 @@ import copy
 import getpass
 import itertools
 import logging
-import mute_progressbar
 import operator
 import os.path
 import pprint
@@ -19,6 +18,7 @@ import re
 import sqlobject
 import textwrap
 
+from lib.python import mute_progressbar
 from lib.python import common_constants
 from lib.python import configuration
 from lib.python import database

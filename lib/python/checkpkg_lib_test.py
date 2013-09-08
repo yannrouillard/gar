@@ -6,25 +6,30 @@ try:
 except ImportError:
   import unittest
 
+import pprint
+
+import cjson
 import copy
 import cPickle
-import database
+import hashlib
 import mox
 import pprint
 import re
 import sqlite3
 import sqlobject
-import tag
-import test_base
-from testdata import stubs
 
-from lib.python import models
-from lib.python import package_stats
 from lib.python import checkpkg_lib
 from lib.python import common_constants
-
-from testdata.neon_stats import pkgstats as neon_stats
-
+from lib.python import database
+from lib.python import models
+from lib.python import package_stats
+from lib.python import relational_util
+from lib.python import tag
+from lib.python import rest
+from lib.python import test_base
+from lib.python.testdata import neon_stats
+from lib.python.testdata import stubs
+from lib.web import releases_web
 
 class CheckpkgManager2UnitTest(mox.MoxTestBase):
 
@@ -99,7 +104,7 @@ class CheckpkgManager2UnitTest(mox.MoxTestBase):
     stat_obj = self.mox.CreateMockAnything()
     data_obj = self.mox.CreateMockAnything()
     stat_obj.data_obj = data_obj
-    pkg_stats = copy.deepcopy(neon_stats[0])
+    pkg_stats = copy.deepcopy(neon_stats.pkgstats)
     # Resetting the dependencies so that it doesn't report surplus deps.
     pkg_stats["depends"] = []
     data_obj.pickle = cPickle.dumps(pkg_stats)
@@ -342,15 +347,56 @@ class CheckpkgManager2UnitTest(mox.MoxTestBase):
 
 
 class CheckpkgManager2DatabaseIntegrationTest(
-    test_base.SqlObjectTestMixin, unittest.TestCase):
+    test_base.SqlObjectTestMixin, mox.MoxTestBase):
+
+  def SetUpStatsForTesting(self, pkgstat_module):
+    for md5_sum, data in pkgstat_module.elfdump_data.iteritems():
+      json = cjson.encode(data)
+      content_hash = hashlib.md5()
+      content_hash.update(json)
+      models.ElfdumpInfoBlob(
+          md5_sum=md5_sum,
+          json=json,
+          content_md5_sum=content_hash.hexdigest(),
+          mime_type='application/json')
+    data = copy.deepcopy(pkgstat_module.pkgstats[0])
+    data['elf_callback'] = None
+    json = cjson.encode(data)
+    content_hash = hashlib.md5()
+    content_hash.update(json)
+    md5_sum = pkgstat_module.pkgstats[0]['basic_stats']['md5_sum']
+    models.Srv4FileStatsBlob(
+        md5_sum=md5_sum,
+        json=json,
+        content_md5_sum=content_hash.hexdigest(),
+        mime_type='application/json')
+
+    sqo_pkgstats, pkgstats = relational_util.StatsStructToDatabaseLevelOne(
+        md5_sum, False)
+    return sqo_pkgstats, pkgstats
+
+  def SetUpMockCalls(self, pkgstats_module, pkg_md5_sum, pkgstats):
+    self.rest_client_mock.GetBlob('pkgstats', pkg_md5_sum).AndReturn(
+            pkgstats)
+    for binary_path, md5_sum in pkgstats_module.pkgstats[0]['binary_md5_sums']:
+      data = pkgstats_module.elfdump_data[md5_sum]
+      self.rest_client_mock.GetBlob(
+          'elfdump', md5_sum).AndReturn(data)
 
   def setUp(self):
     super(CheckpkgManager2DatabaseIntegrationTest, self).setUp()
-    self.mox = mox.Mox()
+    self.rest_client_mock = self.mox.CreateMock(rest.RestClient)
+    self.mox.StubOutWithMock(rest, 'RestClient')
+    rest.RestClient(
+        pkgdb_url=mox.IsA(str),
+        releases_url=mox.IsA(str)).AndReturn(
+            self.rest_client_mock)
 
   def testInsertNeon(self):
     self.dbc.InitialDataImport()
-    sqo_pkg = package_stats.PackageStats.SaveStats(neon_stats[0], True)
+    sqo_pkg, pkgstats = self.SetUpStatsForTesting(neon_stats)
+    self.SetUpMockCalls(neon_stats, 'ba3b78331d2ed321900e5da71f7714c5', pkgstats)
+    self.mox.ReplayAll()
     cm = checkpkg_lib.CheckpkgManager2(
         "testname", [sqo_pkg], "SunOS5.9", "sparc", "unstable",
         show_progress=False)
@@ -364,7 +410,10 @@ class CheckpkgManager2DatabaseIntegrationTest(
     FIXME(maciej): Figure out what's wrong with this one: It errors out.
     """
     self.dbc.InitialDataImport()
-    sqo_pkg = package_stats.PackageStats.SaveStats(neon_stats[0], True)
+    sqo_pkg, pkgstats = self.SetUpStatsForTesting(neon_stats)
+    self.SetUpMockCalls(neon_stats, 'ba3b78331d2ed321900e5da71f7714c5', pkgstats)
+    self.SetUpMockCalls(neon_stats, 'ba3b78331d2ed321900e5da71f7714c5', pkgstats)
+    self.mox.ReplayAll()
     cm = checkpkg_lib.CheckpkgManager2(
         "testname", [sqo_pkg], "SunOS5.9", "sparc", "unstable",
         show_progress=False)
