@@ -185,48 +185,5 @@ class LddEmulartorUnitTest(unittest.TestCase):
     self.assertEqual("/opt/csw/bdb47/lib", result)
 
 
-class ParseDumpOutputUnitTest(unittest.TestCase):
-
-  def testBasic(self):
-    expected = representations.BinaryDumpInfo(
-        'foo', 'bar',
-        'libmysqlclient.so.15',
-        ('librt.so.1', 'libresolv.so.2', 'libc.so.1', 'libgen.so.1', 'libsocket.so.1',
-          'libnsl.so.1', 'libm.so.1', 'libz.so.1'),
-        ('/opt/csw/lib/$ISALIST', '/opt/csw/lib', '/opt/csw/mysql5/lib/$ISALIST',
-          '/opt/csw/mysql5/lib', '/opt/csw/mysql5/lib/$ISALIST/mysql'),
-        True,
-        True,
-        True,
-    )
-    self.assertEqual(expected,
-                     ldd_emul.ParseDumpOutput(dump_1.DATA_DUMP_OUTPUT,
-                     'foo', 'bar'))
-
-  def testEmpty(self):
-    expected_runpath = ()
-    self.assertEqual(
-        expected_runpath,
-        ldd_emul.ParseDumpOutput(dump_2.DATA_DUMP_OUTPUT, None, None).runpath)
-
-  def testRpathOnly(self):
-    # 'soname needed_sonames runpath runpath_rpath_the_same '
-    # 'rpath_set runpath_set')
-    expected = representations.BinaryDumpInfo(
-        'foo', 'bar',
-        'libmysqlclient.so.15',
-        ('librt.so.1', 'libresolv.so.2', 'libc.so.1', 'libgen.so.1',
-          'libsocket.so.1', 'libnsl.so.1', 'libm.so.1', 'libz.so.1'),
-        ('/opt/csw/lib/$ISALIST', '/opt/csw/lib', '/opt/csw/mysql5/lib/$ISALIST',
-          '/opt/csw/mysql5/lib', '/opt/csw/mysql5/lib/$ISALIST/mysql'),
-        False,
-        True,
-        False,
-    )
-    self.assertEqual(
-        expected,
-        ldd_emul.ParseDumpOutput(dump_3.DATA_DUMP_OUTPUT, 'foo', 'bar'))
-
-
 if __name__ == '__main__':
   unittest.main()
