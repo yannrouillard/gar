@@ -14,11 +14,12 @@ from lib.python.checkpkg_lib_test          import *
 from lib.python.csw_upload_pkg_test        import *
 from lib.python.database_test              import *
 from lib.python.dependency_checks_test     import *
-from lib.python.integrate_catalogs_test    import *
 from lib.python.generate_catalog_file_test import *
+from lib.python.integrate_catalogs_test    import *
 from lib.python.ldd_emul_test              import *
 from lib.python.models_test                import *
 from lib.python.opencsw_test               import *
+from lib.python.overrides_test             import *
 from lib.python.package_checks_test        import *
 from lib.python.package_stats_test         import *
 from lib.python.pkgdb_test                 import *
@@ -33,7 +34,6 @@ from lib.python.util_test                  import *
 
 # These are very slow GAR tests, which I'm disabling for now.
 # from lib.python.example_test            import *
-# from lib.python.overrides_test          import *
 
 if __name__ == '__main__':
   # Some tests output warnings, and we don't want them to be displayed
