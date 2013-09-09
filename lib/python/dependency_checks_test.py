@@ -229,11 +229,8 @@ class TestLibraries(mox.MoxTestBase):
 
   def testByFilename(self):
     self.pkg_data = copy.deepcopy(tree_stats.pkgstats[0])
-    # PkgmapEntry = collections.namedtuple(
-    # 'PkgmapEntry',
-    # 'line, class_, mode, owner, group, path, target, type_, '
-    # 'major, minor, size, cksum, modtime, pkgnames')
-    self.pkg_data["pkgmap"] = representations.PkgmapEntry(
+    self.PrepareElfinfo(self.pkg_data)
+    self.pkg_data['pkgmap'] = [representations.PkgmapEntry(
         line='not important',
         class_='none',
         mode='0755',
@@ -247,7 +244,7 @@ class TestLibraries(mox.MoxTestBase):
         size=None,
         cksum=None,
         modtime=None,
-        pkgnames=None)
+        pkgnames=None)]
     self.error_mgr_mock.NeedPackage(u'CSWtree', u'CSWapache2',
         "found file(s) matching /opt/csw/apache2/, "
         "e.g. '/opt/csw/apache2/bin/foo'")
