@@ -511,7 +511,9 @@ class Unpacker(object):
 
   def GetPkgchkOutput(self):
     """Returns: (exit code, stdout, stderr)."""
-    args = ["/usr/sbin/pkgchk", "-d", self.gunzipped_path, "all"]
+    if not self._transformed:
+        self._TransformToDir()
+    args = ["/usr/sbin/pkgchk", "-d", self.work_dir, self.pkgname]
     return shell.ShellCommand(args)
 
   def GetPkgchkData(self):
