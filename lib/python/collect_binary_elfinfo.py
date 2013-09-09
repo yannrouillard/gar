@@ -24,11 +24,6 @@ from lib.python import errors
 from lib.python import rest
 from lib.python import representations
 
-# For memory usage and efficiency, we use a special class instead of dictionary
-# to store information on each symbol
-Symbol = collections.namedtuple('Symbol', ['bind', 'flags', 'shndx',
-                                           'soname', 'symbol', 'version'])
-
 
 class ElfExtractor(object):
 
@@ -38,9 +33,10 @@ class ElfExtractor(object):
 
   @staticmethod
   def json_postdecode(binary_info):
+    # Is this function used at all? I can't find any references to it.
     symbols = binary_info['symbols']
     for idx, symbol_as_list in enumerate(symbols):
-      symbol = Symbol(symbol_as_list)
+      symbol = representations.ElfSymInfo(symbol_as_list)
       symbols[idx] = symbol
 
     return binary_info
@@ -179,7 +175,7 @@ class ElfExtractor(object):
           if isinstance(syminfo['si_boundto'], int) and syminfo['si_boundto']:
             symbol['soname'] = self._describe_symbol_boundto(syminfo)
 
-        symbols.append(Symbol(**symbol))
+        symbols.append(representations.ElfSymInfo(**symbol))
 
       symbols.sort(key=lambda m: m.symbol)
 

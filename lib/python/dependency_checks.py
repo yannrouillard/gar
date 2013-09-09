@@ -223,6 +223,7 @@ def Libraries(pkg_data, error_mgr, logger, messenger, path_and_pkg_by_basename,
       continue
     binary_md5 = binary_md5_by_path[binary_info.path]
     if not 'elfdump_info' in pkg_data:
+      print 'elfdump_info missing'
       print 'pkgdata.keys():', pkg_data.keys()
       print pkg_data['basic_stats']
     # This causes a runtime lookup to be made during checking.
@@ -232,16 +233,16 @@ def Libraries(pkg_data, error_mgr, logger, messenger, path_and_pkg_by_basename,
     db_libs = set()
     really_needed_libs = set()
     for syminfo in binary_elf_info['symbol table']:
-      if (syminfo['soname'] is not None and
-          syminfo['flags'] is not None):
-        really_needed_libs.add(syminfo['soname'])
+      if (syminfo.soname is not None and
+          syminfo.flags is not None):
+        really_needed_libs.add(syminfo.soname)
         # Even when direct binding is enabled, some symbols might not be
         # directly bound because the library explicitely requested the symbol
         # not to be directly bound to.
         # So we consider that direct binding is enabled if at least one
         # symbol is directly bound to the library
-        if 'B' in syminfo['flags']:
-          db_libs.add(syminfo['soname'])
+        if 'B' in syminfo.flags:
+          db_libs.add(syminfo.soname)
 
     # Direct bind check
 

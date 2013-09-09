@@ -24,3 +24,6 @@ PkgmapEntry = collections.namedtuple(
     'PkgmapEntry',
     'line, class_, mode, owner, group, path, target, type_, '
     'major, minor, size, cksum, modtime, pkgnames')
+
+ElfSymInfo = collections.namedtuple('Symbol', ['bind', 'flags', 'shndx',
+                                               'soname', 'symbol', 'version'])
