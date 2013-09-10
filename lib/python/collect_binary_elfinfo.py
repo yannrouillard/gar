@@ -34,7 +34,7 @@ class ElfExtractor(object):
   @staticmethod
   def json_postdecode(binary_info):
     # Is this function used at all? I can't find any references to it.
-    symbols = binary_info['symbols']
+    symbols = binary_info['symbol table']
     for idx, symbol_as_list in enumerate(symbols):
       symbol = representations.ElfSymInfo(symbol_as_list)
       symbols[idx] = symbol
