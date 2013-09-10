@@ -31,16 +31,6 @@ class ElfExtractor(object):
                   'SHT_GNU_verneed': 'verneed', 'SHT_GNU_verdef': 'verdef',
                   'SHT_GNU_versym': 'versym', 'SHT_DYNAMIC': 'dynamic'}
 
-  @staticmethod
-  def json_postdecode(binary_info):
-    # Is this function used at all? I can't find any references to it.
-    symbols = binary_info['symbol table']
-    for idx, symbol_as_list in enumerate(symbols):
-      symbol = representations.ElfSymInfo(symbol_as_list)
-      symbols[idx] = symbol
-
-    return binary_info
-
   def __init__(self, binary_path, debug=False):
     self.debug = debug
     self._binary_path = binary_path
