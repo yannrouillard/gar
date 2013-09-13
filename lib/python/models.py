@@ -228,6 +228,7 @@ class Srv4FileStats(sqlobject.SQLObject):
   rev = sqlobject.UnicodeCol(notNone=False, length=250)
   stats_version = sqlobject.IntCol(notNone=True)
   version_string = sqlobject.UnicodeCol(notNone=True, length=250)
+  bundle = sqlobject.UnicodeCol(length=250)
   in_catalogs = sqlobject.MultipleJoin(
           'Srv4FileInCatalog',
           joinColumn='srv4file_id')
