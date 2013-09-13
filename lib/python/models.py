@@ -150,6 +150,7 @@ class CswFile(sqlobject.SQLObject):
   pkginst = sqlobject.ForeignKey('Pkginst', notNone=True)
   srv4_file = sqlobject.ForeignKey('Srv4FileStats')
   basename_idx = sqlobject.DatabaseIndex('basename')
+  basename_idx = sqlobject.DatabaseIndex('path')
 
   def FullPath(self):
     return os.path.join(self.path, self.basename)
