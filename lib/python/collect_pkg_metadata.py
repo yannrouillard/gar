@@ -1,9 +1,9 @@
 #!/opt/csw/bin/python2.6
 
+import cjson
 import copy
 import datetime
 import hashlib
-import json
 import logging
 import optparse
 import os
