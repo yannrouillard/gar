@@ -22,6 +22,7 @@ class SqlObjectTestMixin(object):
     # http://www.mail-archive.com/sqlobject-discuss@lists.sourceforge.net/msg00416.html
     sqlobject.dbconnection.TheURIOpener.cachedURIs={}
 
+
 class PackageStatsMixin(object):
 
   def PrepareElfinfo(self, pkg_data):

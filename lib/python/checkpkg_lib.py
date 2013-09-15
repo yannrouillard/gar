@@ -27,6 +27,7 @@ from lib.python import models as m
 from lib.python import rest
 from lib.python import sharedlib_utils
 from lib.python import tag
+from lib.python import representations
 
 DESCRIPTION_RE = r"^([\S]+) - (.*)$"
 
@@ -169,7 +170,14 @@ class LazyElfinfo(object):
     self.rest_client = rest_client
 
   def __getitem__(self, md5_sum):
-    return self.rest_client.GetBlob('elfdump', md5_sum)
+    elfdump_data = self.rest_client.GetBlob('elfdump', md5_sum)
+    # json doesn't preserve namedtuple so we do some post-processing
+    # to transform symbol info from List to NamedTuple
+    symbols = elfdump_data['symbol table']
+    for idx, symbol_as_list in enumerate(symbols):
+      symbols[idx] = representations.ElfSymInfo(*symbol_as_list)
+
+    return elfdump_data
 
 
 class CheckpkgManagerBase(SqlobjectHelperMixin):

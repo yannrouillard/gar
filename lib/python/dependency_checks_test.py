@@ -204,7 +204,7 @@ class TestByDirectory(unittest.TestCase):
     self.assertEquals(expected, result)
 
 
-class TestLibraries(test_base.PrepareElfinfo, mox.MoxTestBase):
+class TestLibraries(test_base.PackageStatsMixin, mox.MoxTestBase):
 
   def setUp(self):
     super(TestLibraries, self).setUp()

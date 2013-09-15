@@ -58,12 +58,27 @@ BASE_SOLARIS_LIBRARIES = set([
 
 ALLOWED_VERSION_DEPENDENCIES = {
     "libc.so.1": {
-        u'SunOS5.11': ['SYSVABI_1.3', 'SUNWprivate_1.1', 'SUNW_1.23', 'SISCD_2.3'],
-        u'SunOS5.10': ['SYSVABI_1.3', 'SUNWprivate_1.1', 'SUNW_1.22.6', 'SISCD_2.3'],
-        u'SunOS5.9': ['SYSVABI_1.3', 'SUNWprivate_1.1', 'SUNW_1.21.2', 'SISCD_2.3'],
+        u'SunOS5.8': [],
+        u'SunOS5.9': ['SYSVABI_1.3',
+                      'SUNWprivate_1.1',
+                      'SUNW_1.21.2',
+                      'SISCD_2.3'],
+        u'SunOS5.10': ['SYSVABI_1.3',
+                       'SUNWprivate_1.1',
+                       'SUNW_1.22.6',
+                       'SISCD_2.3'],
+        u'SunOS5.11': ['SYSVABI_1.3',
+                       'SUNWprivate_1.1',
+                       'SUNW_1.23',
+                       'SISCD_2.3'],
     },
 }
 
+# All OS releases must have entries here.
+for soname in ALLOWED_VERSION_DEPENDENCIES:
+  os_rels = ALLOWED_VERSION_DEPENDENCIES[soname].keys()
+  assert set(os_rels) == set(common_constants.OS_RELS)
+del soname, os_rels
 
 def CompareLibraryVersions(version1, version2):
   """Compare two library versions

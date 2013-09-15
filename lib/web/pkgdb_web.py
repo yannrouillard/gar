@@ -137,11 +137,14 @@ class Srv4Detail(object):
 class Srv4StructDump(object):
 
   def GET(self, md5_sum):
-    blob = models.Srv4FileStatsBlob.selectBy(md5_sum=md5_sum).getOne()
-    struct = cjson.decode(blob.json)
-    basename = struct['basic_stats']['pkg_basename']
-    struct_dump = pprint.pformat(struct)
-    return render.Srv4StructDump(basename, struct_dump)
+    try:
+      blob = models.Srv4FileStatsBlob.selectBy(md5_sum=md5_sum).getOne()
+      struct = cjson.decode(blob.json)
+      basename = struct['basic_stats']['pkg_basename']
+      struct_dump = pprint.pformat(struct)
+      return render.Srv4StructDump(basename, struct_dump)
+    except sqlobject.main.SQLObjectNotFound:
+      raise web.notfound()
 
 
 class Catalogname(object):
@@ -152,7 +155,7 @@ class Catalogname(object):
           catalogname=catalogname,
           registered_level_two=True).orderBy('mtime')
       return render.Catalogname(catalogname, pkgs)
-    except sqlobject.main.SQLObjectNotFound, e:
+    except sqlobject.main.SQLObjectNotFound:
       raise web.notfound()
 
 
