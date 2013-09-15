@@ -8,10 +8,11 @@ import pprint
 from lib.python import checkpkg_lib
 from lib.python import dependency_checks
 from lib.python import representations
+from lib.python import test_base
 from lib.python.testdata import stubs
 from lib.python.testdata import tree_stats
-from lib.python.testdata.sudo_stats import pkgstats as sudo_stats
 from lib.python.testdata.javasvn_stats import pkgstats as javasvn_stats
+from lib.python.testdata.sudo_stats import pkgstats as sudo_stats
 
 
 class TestGetPkgByFullPath(unittest.TestCase):
@@ -203,7 +204,7 @@ class TestByDirectory(unittest.TestCase):
     self.assertEquals(expected, result)
 
 
-class TestLibraries(mox.MoxTestBase):
+class TestLibraries(test_base.PrepareElfinfo, mox.MoxTestBase):
 
   def setUp(self):
     super(TestLibraries, self).setUp()
@@ -212,15 +213,6 @@ class TestLibraries(mox.MoxTestBase):
     self.error_mgr_mock = self.mox.CreateMock(
         checkpkg_lib.SetCheckInterface)
     self.pkg_data = copy.deepcopy(sudo_stats[0])
-
-  def PrepareElfinfo(self, pkg_data):
-    for binary_md5 in pkg_data['elfdump_info']:
-      d = pkg_data['elfdump_info'][binary_md5]
-      syminfo_list = []
-      for syminfo_as_list in d['symbol table']:
-        symbol = representations.ElfSymInfo._make(syminfo_as_list)
-        syminfo_list.append(symbol)
-      d['symbol table'] = syminfo_list
 
   def testLibrariesRpathOrder(self):
     # pkg_data, error_mgr, logger, messenger, path_and_pkg_by_basename,

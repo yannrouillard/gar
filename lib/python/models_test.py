@@ -1,6 +1,11 @@
 #!/usr/bin/env python2.6
 
-import unittest2 as unittest
+# Try to use unittest2, fall back to unittest
+try:
+  import unittest2 as unittest
+except ImportError:
+  import unittest
+
 import mox
 import sqlobject
 import datetime
@@ -67,6 +72,7 @@ class Srv4FileStatsUnitTest(test_base.SqlObjectTestMixin,
         rev="2011.01.01",
         stats_version=0,
         version_string="1.0,REV=2011.01.01",
+        bundle="fake_bundle",
     )
 
   def testRemoveCheckpkgResults(self):

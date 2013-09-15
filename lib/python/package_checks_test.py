@@ -2,11 +2,14 @@
 # coding=utf-8
 # $Id$
 
+# Try to use unittest2, fall back to unittest
+try:
+  import unittest2 as unittest
+except ImportError:
+  import unittest
+
 import copy
 import datetime
-import unittest2 as unittest
-import package_checks as pc
-import checkpkg_lib
 import os.path
 import mox
 import logging
@@ -14,8 +17,11 @@ import pprint
 
 from lib.python.testdata.djvulibre_rt_stats import pkgstats as djvulibre_rt_stats
 
-from lib.python import representations
+from lib.python import checkpkg_lib
 from lib.python import fake_pkgstats_composer
+from lib.python import package_checks as pc
+from lib.python import representations
+from lib.python import test_base
 from lib.python.testdata import rpaths
 from lib.python.testdata import stubs
 
@@ -34,13 +40,14 @@ DEFAULT_PKG_STATS = None
 DEFAULT_PKG_DATA = rsync_stats[0]
 
 
-class CheckTestHelper(object):
+class CheckTestHelper(test_base.PackageStatsMixin):
   """Class responsible for making calls to package check functions."""
 
   def setUp(self):
     super(CheckTestHelper, self).setUp()
     self.mox = mox.Mox()
     self.pkg_data = copy.deepcopy(DEFAULT_PKG_DATA)
+    self.PrepareElfinfo(self.pkg_data)
     self.logger_mock = stubs.LoggerStub()
     self.SetMessenger()
     if self.FUNCTION_NAME.startswith("Set"):
@@ -914,23 +921,23 @@ class TestCheckVendorURL(CheckTestHelper, unittest.TestCase):
 class TestCheckPackageDoesNotBreakPython26(CheckTestHelper, unittest.TestCase):
   FUNCTION_NAME = "CheckPackageDoesNotBreakPython26"
   def testBad(self):
-    self.pkg_data["pkgmap"].append({
-      "class": "none", "group": "bin", "line": "", "mode": '0755',
-      "type": "f", "user": "root",
-      "path": "/opt/csw/lib/python2.7/site-packages/"
-              "hachoir_parser/video/mov.py",
-      # No file in /opt/csw/lib/python/site-packages
-    })
+    self.pkg_data["pkgmap"].append(representations.PkgmapEntry(
+      path="/opt/csw/lib/python2.7/site-packages/"
+           "hachoir_parser/video/mov.py",
+      line="doesn't matter here", class_="none", mode='0755', owner="root", group="bin",
+      target=None, type_="d", major=None, minor=None, size=None, cksum=None,
+      modtime=None, pkgnames=[]))
+    # There's no file in /opt/csw/lib/python/site-packages
     self.pkg_data["basic_stats"]["catalogname"] = "py_foo"
     self.pkg_data["basic_stats"]["pkgname"] = "CSWpy-foo"
     self.error_mgr_mock.ReportError('python-package-missing-py26-files')
 
   def testGood(self):
-    self.pkg_data["pkgmap"].append({
-      "class": "none", "group": "bin", "line": "", "mode": '0755',
-      "type": "f", "user": "root",
-      "path": "/opt/csw/lib/python/site-packages/hachoir_parser/video/mov.py",
-    })
+    self.pkg_data["pkgmap"].append(representations.PkgmapEntry(
+      path="/opt/csw/lib/python/site-packages/hachoir_parser/video/mov.py",
+      line="doesn't matter here", class_="none", mode='0755', owner="root", group="bin",
+      target=None, type_="d", major=None, minor=None, size=None, cksum=None,
+      modtime=None, pkgnames=[]))
     self.pkg_data["basic_stats"]["catalogname"] = "py_foo"
     self.pkg_data["basic_stats"]["pkgname"] = "CSWpy-foo"
 
@@ -938,15 +945,11 @@ class TestCheckPackageDoesNotBreakPython26(CheckTestHelper, unittest.TestCase):
 class TestCheckDisallowedPaths(CheckTestHelper, unittest.TestCase):
   FUNCTION_NAME = "CheckDisallowedPaths"
   def testManDir(self):
-    self.pkg_data["pkgmap"].append({
-      "class": "none",
-      "group": "bin",
-      "line": "doesn't matter here",
-      "mode": '0755',
-      "path": "/opt/csw/man",
-      "type": "d",
-      "user": "root"
-    })
+    self.pkg_data["pkgmap"].append(representations.PkgmapEntry(
+      path="/opt/csw/man",
+      line="doesn't matter here", class_="none", mode='0755', owner="root", group="bin",
+      target=None, type_="d", major=None, minor=None, size=None, cksum=None,
+      modtime=None, pkgnames=[]))
     self.error_mgr_mock.GetCommonPaths('sparc').AndReturn([])
     self.error_mgr_mock.ReportError(
         'disallowed-path', 'opt/csw/man',
@@ -954,15 +957,11 @@ class TestCheckDisallowedPaths(CheckTestHelper, unittest.TestCase):
         'or is not allowed for other reasons.')
 
   def testManFile(self):
-    self.pkg_data["pkgmap"].append({
-      "class": "none",
-      "group": "bin",
-      "line": "doesn't matter here",
-      "mode": '0755',
-      "path": "/opt/csw/man/man1/foo.1",
-      "type": "f",
-      "user": "root"
-    })
+    self.pkg_data["pkgmap"].append(representations.PkgmapEntry(
+      path="/opt/csw/man/man1/foo.1",
+      line="doesn't matter here", class_="none", mode='0755', owner="root", group="bin",
+      target=None, type_="d", major=None, minor=None, size=None, cksum=None,
+      modtime=None, pkgnames=[]))
     self.error_mgr_mock.GetCommonPaths('sparc').AndReturn([])
     self.error_mgr_mock.ReportError(
         'disallowed-path', 'opt/csw/man/man1/foo.1',

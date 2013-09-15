@@ -875,11 +875,11 @@ def CheckPackageDoesNotBreakPython26(pkg_data, error_mgr, logger, messenger):
   spotted_a_py26_file = False
   example_py_file = ""
   for pkgmap_entry in pkg_data["pkgmap"]:
-    if not pkgmap_entry["path"]:
+    if not pkgmap_entry.path:
       continue
-    if py26_file_re.match(pkgmap_entry["path"]):
+    if py26_file_re.match(pkgmap_entry.path):
       spotted_a_py26_file = True
-      example_py_file = pkgmap_entry["path"]
+      example_py_file = pkgmap_entry.path
       break
   if not spotted_a_py26_file:
     error_mgr.ReportError("python-package-missing-py26-files")
