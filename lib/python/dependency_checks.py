@@ -58,7 +58,11 @@ BASE_SOLARIS_LIBRARIES = set([
 
 ALLOWED_VERSION_DEPENDENCIES = {
     "libc.so.1": {
-        u'SunOS5.8': [],
+        # TODO(yann): Review if this list is correct for Solaris 8.
+        u'SunOS5.8': ['SYSVABI_1.3',
+                      'SUNWprivate_1.1',
+                      'SUNW_1.21.2',
+                      'SISCD_2.3'],
         u'SunOS5.9': ['SYSVABI_1.3',
                       'SUNWprivate_1.1',
                       'SUNW_1.21.2',
