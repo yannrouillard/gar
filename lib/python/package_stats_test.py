@@ -1,13 +1,13 @@
 #!/usr/bin/env python2.6
 
 import copy
-import unittest
 import database
-import sqlobject
-import test_base
+import datetime
 import logging
 import mox
-import datetime
+import sqlobject
+import test_base
+import unittest
 
 from lib.python import checkpkg_lib
 from lib.python import configuration
@@ -22,8 +22,7 @@ from testdata.neon_stats import pkgstats as neon_stats
 
 
 class DatabaseIntegrationTest(test_base.SqlObjectTestMixin,
-                              mox.MoxTestBase,
-                              unittest.TestCase):
+                              mox.MoxTestBase):
 
   def setUp(self):
     super(DatabaseIntegrationTest, self).setUp()

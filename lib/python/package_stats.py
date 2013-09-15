@@ -3,7 +3,6 @@
 import cjson
 import copy
 import dateutil.parser
-import io
 import itertools
 import logging
 import mute_progressbar

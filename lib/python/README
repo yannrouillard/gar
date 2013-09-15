@@ -88,24 +88,27 @@ tests as means to run various bits of code.  Here's the dependency list
 for Ubuntu.
 
 sudo aptitude install \
-  python-mysql \
   python-cheetah \
   python-magic \
   python-mox \
+  python-mysql \
   python-progressbar \
   python-pycurl \
   python-sqlobject \
   python-unittest2 \
+  python-webpy \
   python-yaml
 
 Seem unpackaged: elftools from
 http://eli.thegreenplace.net/2012/01/06/pyelftools-python-library-for-parsing-elf-and-dwarf/
 
-The progressbar package in older Ubuntu versions (12.4) are too old and do not
+The progressbar package in older Ubuntu versions (12.4) is too old and does not
 have the progressbar.widget submodule.
 
 Solaris package dependencies:
 
+CSWap2-modwsgi
+CSWapache2
 CSWpy-cheetah
 CSWpy-curl
 CSWpy-libmagic
@@ -115,11 +118,7 @@ CSWpy-progressbar
 CSWpy-pyelftools
 CSWpy-sqlobject
 CSWpy-unittest2
-
-For pkgdb-web
-
-CSWapache2
-CSWap2-modwsgi
+CSWpy-webpy
 
 ===Checkpkg database===
 
