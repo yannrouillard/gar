@@ -103,6 +103,7 @@ def StatsStructToDatabaseLevelOne(md5_sum, use_in_catalogs=True):
                   parsed_basename)
 
   register = True
+  bundle = pkg_stats['pkginfo'].get("OPENCSW_BUNDLE", None)
 
   if db_pkg_stats:
     # If the database row exists already, update it.
@@ -126,7 +127,7 @@ def StatsStructToDatabaseLevelOne(md5_sum, use_in_catalogs=True):
     db_pkg_stats.rev = rev
     db_pkg_stats.stats_version = PACKAGE_STATS_VERSION
     db_pkg_stats.version_string = parsed_basename["full_version_string"]
-    db_pkg_stats.bundle = pkg_stats["pkginfo"]["OPENCSW_BUNDLE"]
+    db_pkg_stats.bundle = bundle
   else:
     db_pkg_stats = models.Srv4FileStats(
         arch=arch,
@@ -145,7 +146,7 @@ def StatsStructToDatabaseLevelOne(md5_sum, use_in_catalogs=True):
         rev=rev,
         stats_version=PACKAGE_STATS_VERSION,
         version_string=parsed_basename["full_version_string"],
-        bundle=pkg_stats["pkginfo"]["OPENCSW_BUNDLE"])
+        bundle=bundle)
   # Inserting overrides as rows into the database
   for override_dict in pkg_stats["overrides"]:
     models.CheckpkgOverride(srv4_file=db_pkg_stats,
