@@ -581,7 +581,7 @@ class Unpacker(object):
       ret_code, stdout, stderr = shell.ShellCommand(args, stderr=se)
       if ret_code:
         raise ShellCommandError(stderr)
-      binary_data = json.loads(stdout)
+      binary_data = cjson.decode(stdout)
       binary_md5_sums.append((binary, binary_data['md5_sum']))
     return binary_md5_sums
 
