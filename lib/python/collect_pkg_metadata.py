@@ -619,4 +619,4 @@ if __name__ == '__main__':
       "unpacked": bool(unpacked),
   }
   # Returning data to the master process.
-  print(json.dumps(data_back, indent=2))
+  print(cjson.encode(data_back))
