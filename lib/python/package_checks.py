@@ -875,6 +875,7 @@ def CheckPackageDoesNotBreakPython26(pkg_data, error_mgr, logger, messenger):
   spotted_a_py26_file = False
   example_py_file = ""
   for pkgmap_entry in pkg_data["pkgmap"]:
+    pkgmap_entry = representations.PkgmapEntry._make(pkgmap_entry)
     if not pkgmap_entry.path:
       continue
     if py26_file_re.match(pkgmap_entry.path):
