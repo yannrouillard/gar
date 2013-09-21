@@ -279,16 +279,12 @@ class IndexerUnitTest(unittest.TestCase):
   def test_ParseIpsPkgContentsLineLink(self):
     spi = system_pkgmap.Indexer()
     line = PKGCONTENT_LINE_1
-    expected = {
-        'pkgnames': ['SUNWsystem-core-os'],
-        'group': None,
-        'target': './usr/bin',
-        'owner': None,
-        'path': '/bin',
-        'line': PKGCONTENT_LINE_1,
-        'type': 's',
-        'mode': None,
-    }
+    expected = representations.PkgmapEntry(
+        line=PKGCONTENT_LINE_1, class_=None, mode=None, owner=None,
+        group=None, type_='s', major=None, minor=None, size=None,
+        path='/bin', target='./usr/bin', cksum=None, modtime=None,
+        pkgnames=['SUNWsystem-core-os'],
+    )
     self.assertEqual(
         expected,
         spi._ParseIpsPkgContentsLine(line))
@@ -296,16 +292,12 @@ class IndexerUnitTest(unittest.TestCase):
   def test_ParseIpsPkgContentsLineDir(self):
     spi = system_pkgmap.Indexer()
     line = PKGCONTENT_LINE_2
-    expected = {
-        'pkgnames': ['SUNWsystem-core-os'],
-        'group': 'sys',
-        'target': None,
-        'owner': 'root',
-        'path': '/dev',
-        'line': PKGCONTENT_LINE_2,
-        'type': 'd',
-        'mode': '0755',
-    }
+    expected = representations.PkgmapEntry(
+        line=PKGCONTENT_LINE_2, class_=None, mode='0755',
+        owner='root', group='sys', path='/dev',
+        target=None, type_='d', major=None, minor=None, size=None,
+        cksum=None, modtime=None, pkgnames=['SUNWsystem-core-os'],
+    )
     self.assertEqual(
         expected,
         spi._ParseIpsPkgContentsLine(line))
@@ -313,16 +305,13 @@ class IndexerUnitTest(unittest.TestCase):
   def test_ParseIpsPkgContentsLineHardlink(self):
     spi = system_pkgmap.Indexer()
     line = PKGCONTENT_LINE_3
-    expected = {
-        'pkgnames': ['SUNWsystem-core-os'],
-        'group': None,
-        'target': './platform_SUNW,UltraSPARC-IIi-Netract.xml',
-        'owner': None,
-        'path': '/etc/svc/profile/platform_SUNW,UltraSPARC-IIe-NetraCT-40.xml',
-        'line': PKGCONTENT_LINE_3,
-        'type': 'l',
-        'mode': None,
-    }
+    expected = representations.PkgmapEntry(
+        line=PKGCONTENT_LINE_3, class_=None, mode=None, owner=None,
+        group=None, type_='l', major=None, minor=None, size=None,
+        path='/etc/svc/profile/platform_SUNW,UltraSPARC-IIe-NetraCT-40.xml',
+        target='./platform_SUNW,UltraSPARC-IIi-Netract.xml',
+        cksum=None, modtime=None, pkgnames=['SUNWsystem-core-os'],
+    )
     self.assertEqual(
         expected,
         spi._ParseIpsPkgContentsLine(line))
@@ -330,16 +319,12 @@ class IndexerUnitTest(unittest.TestCase):
   def test_ParseIpsPkgContentsLineFile(self):
     spi = system_pkgmap.Indexer()
     line = PKGCONTENT_LINE_4
-    expected = {
-        'pkgnames': ['SUNWsystem-library'],
-        'group': 'bin',
-        'target': None,
-        'owner': 'root',
-        'path': '/lib/libc.so.1',
-        'line': PKGCONTENT_LINE_4,
-        'type': 'f',
-        'mode': '0755',
-    }
+    expected = representations.PkgmapEntry(
+        line=PKGCONTENT_LINE_4, class_=None, mode='0755', owner='root',
+        group='bin', type_='f', major=None, minor=None, size=None,
+        path='/lib/libc.so.1', target=None, cksum=None, modtime=None,
+        pkgnames=['SUNWsystem-library'],
+    )
     self.assertEqual(
         expected,
         spi._ParseIpsPkgContentsLine(line))
@@ -349,7 +334,6 @@ class IndexerUnitTest(unittest.TestCase):
     self.assertEqual(
         'SUNWsystem-core-os',
         spi._IpsNameToSrv4Name("system/core-os"))
-
 
   def test_ParsePkgContents(self):
     spi = system_pkgmap.Indexer()
