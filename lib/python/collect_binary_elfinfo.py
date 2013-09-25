@@ -162,7 +162,7 @@ class ElfExtractor(object):
         if 'syminfo' in sections:
           syminfo = sections['syminfo'].get_symbol(index)
           symbol['flags'] = describe_syminfo_flags(syminfo['si_flags'])
-          if isinstance(syminfo['si_boundto'], int) and syminfo['si_boundto']:
+          if isinstance(syminfo['si_boundto'], int):
             symbol['soname'] = self._describe_symbol_boundto(syminfo)
 
         symbols.append(representations.ElfSymInfo(**symbol))
