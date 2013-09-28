@@ -161,8 +161,16 @@ class ElfExtractor(object):
 
         if 'syminfo' in sections:
           syminfo = sections['syminfo'].get_symbol(index)
-          symbol['flags'] = describe_syminfo_flags(syminfo['si_flags'])
-          if isinstance(syminfo['si_boundto'], int):
+          # We only use the information from syminfo if:
+          # - there is at least one flag that uses the boundto value,
+          # - boundto is an index and not special value (SYMINFO_BT_SELF...)
+          if (syminfo['si_flags'] & (
+                SUNW_SYMINFO_FLAGS.SYMINFO_FLG_DIRECT |
+                SUNW_SYMINFO_FLAGS.SYMINFO_FLG_DIRECTBIND |
+                SUNW_SYMINFO_FLAGS.SYMINFO_FLG_LAZYLOAD |
+                SUNW_SYMINFO_FLAGS.SYMINFO_FLG_FILTER)
+              and isinstance(syminfo['si_boundto'], int)):
+            symbol['flags'] = describe_syminfo_flags(syminfo['si_flags'])
             symbol['soname'] = self._describe_symbol_boundto(syminfo)
 
         symbols.append(representations.ElfSymInfo(**symbol))
